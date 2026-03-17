@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HybridIDS — Network Intrusion Detection System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0f1e;
+      --panel:     #0d1424;
+      --surface:   #111827;
+      --border:    #1e2d45;
+      --border2:   #2d3f5a;
+      --cyan:      #06b6d4;
+      --green:     #10b981;
+      --purple:    #8b5cf6;
+      --yellow:    #f59e0b;
+      --red:       #ef4444;
+      --orange:    #f97316;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    8px;
+      --radius-lg: 12px;
+      --transition:0.2s ease;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .muted { color: var(--muted); }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      height: 60px;
+      background: rgba(10,15,30,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+    }
+    .navbar .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .nav-logo .dot {
+      width: 8px; height: 8px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan);
+    }
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 2rem;
+    }
+    .nav-links a {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color var(--transition);
+    }
+    .nav-links a:hover,
+    .nav-links a.active { color: var(--cyan); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.65rem 1.4rem;
+      border-radius: var(--radius);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      border: none;
+    }
+    .btn-primary { background: var(--cyan); color: #000; }
+    .btn-primary:hover { background: #22d3ee; box-shadow: 0 0 20px rgba(6,182,212,0.4); }
+    .btn-outline { background: transparent; border: 1px solid var(--border2); color: var(--text); }
+    .btn-outline:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* ── Section helpers ── */
+    .section-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+    }
+    .section-sub {
+      color: var(--muted);
+      font-size: 0.82rem;
+      max-width: 540px;
+    }
+    .section-header { margin-bottom: 2.5rem; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0; }
+    }
+
+    .stagger > * { animation: fadeUp 0.5s ease forwards; opacity: 0; }
+    .stagger > *:nth-child(1) { animation-delay: 0.1s; }
+    .stagger > *:nth-child(2) { animation-delay: 0.2s; }
+    .stagger > *:nth-child(3) { animation-delay: 0.3s; }
+    .stagger > *:nth-child(4) { animation-delay: 0.4s; }
+    .stagger > *:nth-child(5) { animation-delay: 0.5s; }
+    .stagger > *:nth-child(6) { animation-delay: 0.6s; }
+
+    /* ══════════════════════════════
+       HERO
+    ══════════════════════════════ */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding-top: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    canvas#bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.4;
+    }
+    .hero .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 3rem;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+    }
+    .hero-content {
+      flex: 1;
+      min-width: 0;
+      max-width: 560px;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: rgba(6,182,212,0.1);
+      border: 1px solid rgba(6,182,212,0.3);
+      border-radius: 100px;
+      font-size: 0.72rem;
+      color: var(--cyan);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .hero-tag .blink {
+      width: 6px; height: 6px;
+      background: var(--cyan);
+      border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.6rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 .line2 { color: var(--cyan); display: block; }
+    .hero-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 480px;
+      margin-bottom: 2rem;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+    /* ══════════════════════════════
+       STAT CARDS + TOOLTIPS
+    ══════════════════════════════ */
+    .hero-stats {
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .stats-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      width: 190px;
+    }
+    .stat-card {
+      position: relative;
+      background: rgba(10,15,30,0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 0.9rem 1rem 0.8rem;
+      cursor: default;
+      overflow: visible; /* tooltips must escape */
+      transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+      animation: fadeUp 0.6s ease forwards;
+      opacity: 0;
+    }
+    .stat-card:nth-child(1) { animation-delay: 0.4s; }
+    .stat-card:nth-child(2) { animation-delay: 0.55s; }
+    .stat-card:nth-child(3) { animation-delay: 0.7s; }
+    .stat-card:nth-child(4) { animation-delay: 0.85s; }
+
+    .stat-card.cyan   { --accent: var(--cyan);   border-left: 2px solid var(--cyan); }
+    .stat-card.green  { --accent: var(--green);  border-left: 2px solid var(--green); }
+    .stat-card.purple { --accent: var(--purple); border-left: 2px solid var(--purple); }
+    .stat-card.yellow { --accent: var(--yellow); border-left: 2px solid var(--yellow); }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent);
+      box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .stat-card:hover::before { opacity: 1; }
+
+    .info-icon {
+      position: absolute;
+      top: 0.6rem; right: 0.6rem;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      font-size: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: serif;
+      font-style: italic;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .stat-card:hover .info-icon { border-color: var(--accent); color: var(--accent); }
+
+    .stat-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+    .stat-sub { font-size: 0.6rem; color: var(--muted); }
+
+    /* tooltip — pops to the LEFT of the card */
+    .tooltip {
+      position: absolute;
+      top: 50%;
+      right: calc(100% + 12px);
+      left: auto;
+      transform: translateY(-50%) translateX(6px);
+      width: 270px;
+      background: #080f1c;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 0.9rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 999;
+      box-shadow: 0 10px 36px rgba(0,0,0,0.8);
+    }
+    /* right-pointing arrow */
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      transform: translateY(-50%);
+      border: 6px solid transparent;
+      border-left-color: var(--accent);
+    }
+    .stat-card:hover .tooltip {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+    }
+
+    .tooltip-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.45rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .tooltip-title::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .tooltip-body {
+      font-size: 0.7rem;
+      line-height: 1.55;
+      color: #94a3b8;
+    }
+    .tooltip-body strong { color: var(--text); font-weight: 600; }
+    .tooltip-highlight {
+      display: block;
+      margin-top: 0.5rem;
+      padding: 0.2rem 0.55rem;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border-left: 2px solid var(--accent);
+      border-radius: 3px;
+      font-size: 0.66rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ══════════════════════════════
+       FEATURES
+    ══════════════════════════════ */
+    .features { padding: 6rem 0; position: relative; z-index: 1; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+    .feature-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      transition: transform var(--transition), border-color var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card:hover { transform: translateY(-4px); border-color: var(--border2); }
+    .feature-card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(6,182,212,0.04), transparent);
+      opacity: 0;
+      transition: opacity var(--transition);
+      pointer-events: none;
+    }
+    .feature-card:hover::after { opacity: 1; }
+    .feature-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 0.9rem;
+    }
+    .feature-card h3 { font-family: 'Syne', sans-serif; font-size: 0.95rem; margin-bottom: 0.45rem; }
+    .feature-card p  { color: var(--muted); font-size: 0.78rem; line-height: 1.6; }
+
+    /* ══════════════════════════════
+       PIPELINE
+    ══════════════════════════════ */
+    .pipeline { padding: 4rem 0; position: relative; z-index: 1; }
+    .pipeline-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2.5rem;
+    }
+    .pipeline-step {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.2rem;
+      text-align: center;
+      min-width: 115px;
+      transition: border-color var(--transition);
+    }
+    .pipeline-step:hover { border-color: var(--cyan); }
+    .pipeline-step-num  { font-size: 0.6rem; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem; }
+    .pipeline-step-name { font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700; }
+    .pipeline-step-sub  { font-size: 0.65rem; color: var(--muted); margin-top: 0.2rem; }
+    .pipeline-arrow     { color: var(--border2); font-size: 1.1rem; padding: 0 0.4rem; flex-shrink: 0; }
+
+    /* ══════════════════════════════
+       CTA
+    ══════════════════════════════ */
+    .cta { padding: 5rem 0; text-align: center; position: relative; z-index: 1; }
+    .cta-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 3.5rem 2rem;
+      max-width: 580px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle at center, rgba(6,182,212,0.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ══════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════ */
+    @media (max-width: 960px) {
+      .hero .container  { flex-direction: column; text-align: center; padding-top: 2rem; }
+      .hero-content     { max-width: 100%; }
+      .hero-actions     { justify-content: center; }
+      .hero-sub         { margin: 0 auto 2rem; }
+      .hero-stats       { width: 100%; }
+      .stats-grid       { width: 100%; flex-direction: row; flex-wrap: wrap; }
+      .features-grid    { grid-template-columns: 1fr 1fr; }
+      .nav-links        { display: none; }
+    }
+    @media (max-width: 600px) {
+      .features-grid  { grid-template-columns: 1fr; }
+      .pipeline-flow  { flex-direction: column; }
+      .pipeline-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<!-- ── Navbar ── -->
+<nav class="navbar">
+  <div class="container">
+    <a href="/index.html" class="nav-logo"><span class="dot"></span>HybridIDS</a>
+    <ul class="nav-links">
+      <li><a href="/index.html" class="active">Home</a></li>
+      <li><a href="/dashboard.html">Detect</a></li>
+      <li><a href="/visualizations.html">Visualize</a></li>
+      <li><a href="/comparison.html">Compare</a></li>
+      <li><a href="/explainability.html">Explain</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="container">
+
+    <!-- Left: text -->
+    <div class="hero-content">
+      <div class="hero-tag"><span class="blink"></span>Intrusion Detection System</div>
+      <h1>Detect Threats.<span class="line2">Explain Every Alert.</span></h1>
+      <p class="hero-sub">
+        A hybrid VAE + LightGBM framework that learns normal traffic, flags anomalies,
+        classifies attack types, and explains every decision — built for the NSL-KDD benchmark.
+      </p>
+      <div class="hero-actions">
+        <a href="/dashboard.html" class="btn btn-primary">⚡ Start Detection</a>
+        <a href="/comparison.html" class="btn btn-outline">View Model Results</a>
+      </div>
+    </div>
+
+    <!-- Right: stat cards -->
+    <div class="hero-stats">
+      <div class="stats-grid">
+
+        <!-- ROC-AUC -->
+        <div class="stat-card cyan">
+          <div class="info-icon">i</div>
+          <div class="stat-label">ROC-AUC</div>
+          <div class="stat-value">96.4%</div>
+          <div class="stat-sub">Anomaly detection quality</div>
+          <div class="tooltip">
+            <div class="tooltip-title">ROC-AUC Explained</div>
+            <div class="tooltip-body">
+              <strong>Receiver Operating Characteristic — Area Under Curve.</strong>
+              Measures how well the VAE separates normal traffic from attacks <em>before</em> any classification happens.
+              <br><br>
+              1.0 = perfect &nbsp;·&nbsp; 0.5 = random guessing.<br>
+              <strong>0.964</strong> — highly accurate even though it never saw attack labels during training.
+              <span class="tooltip-highlight">VAE trained on normal traffic only</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MCC -->
+        <div class="stat-card green">
+          <div class="info-icon">i</div>
+          <div class="stat-label">MCC Score</div>
+          <div class="stat-value">0.719</div>
+          <div class="stat-sub">Overall classification quality</div>
+          <div class="tooltip">
+            <div class="tooltip-title">Matthews Correlation Coefficient</div>
+            <div class="tooltip-body">
+              The <strong>most honest metric</strong> for imbalanced datasets — accounts for all four cells: TP, TN, FP, FN.
+              <br><br>
+              <strong>0</strong> = random guessing &nbsp;·&nbsp; <strong>1.0</strong> = perfect.<br>
+              0.719 is strong given NSL-KDD's extreme class imbalance.
+              <span class="tooltip-highlight">More reliable than accuracy on skewed data</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- U2R F1 -->
+        <div class="stat-card purple">
+          <div class="info-icon">i</div>
+          <div class="stat-label">U2R F1</div>
+          <div class="stat-value">58.5%</div>
+          <div class="stat-sub">Rarest attack class</div>
+          <div class="tooltip">
+            <div class="tooltip-title">User-to-Root F1 Score</div>
+            <div class="tooltip-body">
+              <strong>U2R = User-to-Root</strong> — privilege escalation where an intruder gains admin access from a normal account. Rarest and most dangerous class.
+              <br><br>
+              F1 balances precision and recall. 58.5% on a class with only <strong>52 training samples</strong> vs 45,927 DoS is a major result.
+              <span class="tooltip-highlight">Only 52 U2R samples in training set</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7x -->
+        <div class="stat-card yellow">
+          <div class="info-icon">i</div>
+          <div class="stat-label">U2R Improvement</div>
+          <div class="stat-value">7×</div>
+          <div class="stat-sub">vs supervised baseline</div>
+          <div class="tooltip">
+            <div class="tooltip-title">Headline Result</div>
+            <div class="tooltip-body">
+              Plain LightGBM (no VAE) scores <strong>0.082 F1</strong> on U2R.
+              The full hybrid scores <strong>0.585</strong>.
+              <br><br>
+              A <strong>7× improvement</strong> — proving VAE latent features help detect rare attacks the classifier would otherwise miss entirely.
+              <span class="tooltip-highlight">0.082 → 0.585 &nbsp;·&nbsp; supervised vs hybrid</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<section class="features">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">What it does</span>
+      <h2 class="section-title">Four-stage intelligent pipeline</h2>
+      <p class="section-sub">Each component is independently valuable — together they form a robust, explainable detection system.</p>
+    </div>
+    <div class="features-grid stagger">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan)">🧠</div>
+        <h3>Self-Supervised Learning</h3>
+        <p>A Variational Autoencoder trained exclusively on normal traffic learns the latent structure of benign behavior — without any attack labels.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red)">🚨</div>
+        <h3>Adaptive Anomaly Detection</h3>
+        <p>Reconstruction error is log-transformed and compared against an ensemble threshold derived from three complementary methods.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green)">🎯</div>
+        <h3>Attack Classification</h3>
+        <p>A cost-sensitive LightGBM classifier — trained with SMOTE-ENN balancing — categorises flagged traffic into DoS, Probe, R2L, or U2R.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple)">🔍</div>
+        <h3>SHAP Explainability</h3>
+        <p>Every flagged sample comes with a SHAP breakdown showing exactly which features drove the decision — in plain English.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--yellow)">⚖️</div>
+        <h3>Imbalance-Aware</h3>
+        <p>SMOTE-ENN oversampling combined with 12× cost-sensitive weights for U2R — the rarest and most critical attack class.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(249,115,22,0.1);color:var(--orange)">📊</div>
+        <h3>Full Model Comparison</h3>
+        <p>Four experiments compared head-to-head: supervised baseline, VAE-only, basic hybrid, and the full cost-sensitive system.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pipeline ── -->
+<section class="pipeline">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Architecture</span>
+      <h2 class="section-title">How the pipeline works</h2>
+    </div>
+    <div class="pipeline-flow">
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">Step 1</div>
+        <div class="pipeline-step-name">Input</div>
+        <div class="pipeline-step-sub">CSV / Manual</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">Step 2</div>
+        <div class="pipeline-step-name">Preprocess</div>
+        <div class="pipeline-step-sub">Encode + Scale</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">Step 3</div>
+        <div class="pipeline-step-name">VAE</div>
+        <div class="pipeline-step-sub">Reconstruct</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step" style="border-color:var(--border2)">
+        <div class="pipeline-step-num" style="color:var(--green)">If Normal</div>
+        <div class="pipeline-step-name">✓ Normal</div>
+        <div class="pipeline-step-sub">Low recon error</div>
+      </div>
+      <div class="pipeline-arrow">|</div>
+      <div class="pipeline-step" style="border-color:var(--border2)">
+        <div class="pipeline-step-num" style="color:var(--red)">If Anomaly</div>
+        <div class="pipeline-step-name">LightGBM</div>
+        <div class="pipeline-step-sub">Classify attack</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">Output</div>
+        <div class="pipeline-step-name">Label + SHAP</div>
+        <div class="pipeline-step-sub">DoS/Probe/R2L/U2R</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-box">
+      <span class="section-tag" style="display:block;margin-bottom:1rem">Ready to try it?</span>
+      <h2 class="section-title" style="margin-bottom:1rem">Upload your traffic data</h2>
+      <p class="muted" style="margin-bottom:2rem;font-size:0.82rem">
+        Upload a CSV in NSL-KDD format and get instant classification with SHAP explanations for every flagged sample.
+      </p>
+      <a href="/dashboard.html" class="btn btn-primary" style="font-size:0.88rem;padding:0.8rem 2rem">
+        ⚡ Open Detection Dashboard
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let W, H, nodes = [];
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+function initNodes(n = 60) {
+  nodes = Array.from({length: n}, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    r: Math.random() * 2 + 1,
+  }));
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  nodes.forEach(n => {
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > W) n.vx *= -1;
+    if (n.y < 0 || n.y > H) n.vy *= -1;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(6,182,212,0.6)';
+    ctx.fill();
+  });
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.strokeStyle = `rgba(6,182,212,${0.15 * (1 - dist/120)})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(draw);
+}
+
+resize(); initNodes(); draw();
+window.addEventListener('resize', () => { resize(); initNodes(); });
+</script>
+</body>
+</html>

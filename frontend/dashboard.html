@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HybridIDS — Detection Dashboard</title>
+  <link rel="stylesheet" href="/static/css/styles.css"/>
+  <style>
+    .page-content { padding-top: 80px; }
+
+    /* ── Two-column layout ── */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 1.5rem;
+      padding: 2rem 0;
+      min-height: calc(100vh - 80px);
+    }
+
+    /* ── Left panel ── */
+    .input-panel { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .mode-tabs {
+      display: flex;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 0.5rem;
+      text-align: center;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all var(--transition);
+      color: var(--muted);
+      border: none;
+      background: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .mode-tab.active {
+      background: var(--panel);
+      color: var(--cyan);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--cyan);
+      background: rgba(6,182,212,0.04);
+    }
+
+    .upload-zone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .upload-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .upload-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .upload-filename {
+      margin-top: 0.75rem;
+      padding: 0.4rem 0.75rem;
+      background: rgba(6,182,212,0.1);
+      border: 1px solid rgba(6,182,212,0.2);
+      border-radius: var(--radius);
+      font-size: 0.75rem;
+      color: var(--cyan);
+      display: none;
+    }
+
+    /* ── Manual input form ── */
+    .manual-form { display: none; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    /* ── Results panel ── */
+    .results-panel { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+      min-height: 400px;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.4;
+    }
+
+    .empty-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: var(--muted);
+    }
+
+    /* ── Loading state ── */
+    .loading-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      min-height: 400px;
+      gap: 1.5rem;
+    }
+
+    .loading-radar {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      position: relative;
+      animation: radar-ring 2s linear infinite;
+    }
+
+    .loading-radar::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+    }
+
+    .loading-radar::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 50%; height: 2px;
+      background: linear-gradient(90deg, var(--cyan), transparent);
+      transform-origin: left center;
+      animation: radar-sweep 1.5s linear infinite;
+    }
+
+    @keyframes radar-sweep {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    @keyframes radar-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(6,182,212,0.3); }
+      50%       { box-shadow: 0 0 0 12px rgba(6,182,212,0); }
+    }
+
+    .loading-text {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .loading-progress {
+      width: 200px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loading-progress-fill {
+      height: 100%;
+      background: var(--cyan);
+      border-radius: 2px;
+      animation: loading-anim 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loading-anim {
+      0%   { width: 0%; margin-left: 0; }
+      50%  { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+
+    /* ── Results table ── */
+    .results-content { display: none; flex-direction: column; gap: 1.5rem; }
+
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .confidence-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .confidence-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      min-width: 60px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    .error-bar-val {
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Single result card ── */
+    .single-result {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+    }
+
+    .single-result.anomaly {
+      border-color: rgba(239,68,68,0.4);
+      box-shadow: var(--glow-red);
+    }
+
+    .single-result.normal {
+      border-color: rgba(16,185,129,0.4);
+      box-shadow: var(--glow-green);
+    }
+
+    .single-verdict {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin: 1rem 0;
+    }
+
+    .attack-probs {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .prob-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    .prob-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .prob-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="container">
+    <a href="/index.html" class="nav-logo"><span class="dot"></span>HybridIDS</a>
+    <ul class="nav-links">
+      <li><a href="/index.html">Home</a></li>
+      <li><a href="/dashboard.html" class="active">Detect</a></li>
+      <li><a href="/visualizations.html">Visualize</a></li>
+      <li><a href="/comparison.html">Compare</a></li>
+      <li><a href="/explainability.html">Explain</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="container">
+    <div class="dashboard-layout">
+
+      <!-- ── LEFT: Input Panel ── -->
+      <div class="input-panel">
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-icon">⚡</div>
+            <span class="panel-title">Detection Input</span>
+          </div>
+
+          <!-- Mode tabs -->
+          <div class="mode-tabs" style="margin-bottom:1.25rem">
+            <button class="mode-tab active" onclick="switchMode('file')">File Upload</button>
+            <button class="mode-tab" onclick="switchMode('manual')">Manual Input</button>
+          </div>
+
+          <!-- File upload -->
+          <div id="file-mode">
+            <div class="upload-zone" id="dropzone"
+                 ondragover="handleDragOver(event)"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event)">
+              <input type="file" id="file-input" accept=".csv,.txt"
+                     onchange="handleFileSelect(event)"/>
+              <span class="upload-icon">📡</span>
+              <div class="upload-title">Drop traffic file here</div>
+              <div class="upload-sub">NSL-KDD format CSV or TXT · 41 or 43 columns</div>
+              <div class="upload-filename" id="filename-display"></div>
+            </div>
+
+            <div id="file-alert" style="margin-top:1rem"></div>
+
+            <button class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center"
+                    id="run-file-btn" onclick="runFileDetection()" disabled>
+              <span id="run-file-text">⚡ Run Detection</span>
+            </button>
+          </div>
+
+          <!-- Manual input -->
+          <div id="manual-mode" class="manual-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Duration</label>
+                <input class="form-input" id="m_duration" type="number" value="0" placeholder="0"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Protocol</label>
+                <select class="form-select" id="m_protocol">
+                  <option>tcp</option><option>udp</option><option>icmp</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Service</label>
+                <select class="form-select" id="m_service">
+                  <option>http</option><option>ftp</option><option>smtp</option>
+                  <option>ssh</option><option>dns</option><option>telnet</option>
+                  <option>finger</option><option>domain_u</option><option>private</option>
+                  <option>other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Flag</label>
+                <select class="form-select" id="m_flag">
+                  <option>SF</option><option>S0</option><option>REJ</option>
+                  <option>RSTO</option><option>RSTOS0</option><option>S1</option>
+                  <option>S2</option><option>S3</option><option>OTH</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Src Bytes</label>
+                <input class="form-input" id="m_src_bytes" type="number" value="0"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Dst Bytes</label>
+                <input class="form-input" id="m_dst_bytes" type="number" value="0"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Count</label>
+                <input class="form-input" id="m_count" type="number" value="1"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Srv Count</label>
+                <input class="form-input" id="m_srv_count" type="number" value="1"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Serror Rate</label>
+                <input class="form-input" id="m_serror_rate" type="number" step="0.01" value="0"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rerror Rate</label>
+                <input class="form-input" id="m_rerror_rate" type="number" step="0.01" value="0"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Same Srv Rate</label>
+                <input class="form-input" id="m_same_srv_rate" type="number" step="0.01" value="1"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Diff Srv Rate</label>
+                <input class="form-input" id="m_diff_srv_rate" type="number" step="0.01" value="0"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Logged In</label>
+                <select class="form-select" id="m_logged_in">
+                  <option value="0">No</option><option value="1">Yes</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Num Failed Logins</label>
+                <input class="form-input" id="m_num_failed_logins" type="number" value="0"/>
+              </div>
+            </div>
+
+            <div id="manual-alert" style="margin-top:0.5rem"></div>
+            <button class="btn btn-primary"
+                    style="width:100%;margin-top:1rem;justify-content:center"
+                    onclick="runManualDetection()">
+              ⚡ Analyse Sample
+            </button>
+          </div>
+        </div>
+
+        <!-- Info box -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-icon">ℹ</div>
+            <span class="panel-title">Threshold Info</span>
+          </div>
+          <div id="threshold-info" style="color:var(--muted);font-size:0.78rem">
+            Loading...
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── RIGHT: Results Panel ── -->
+      <div class="results-panel">
+
+        <!-- Empty state -->
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">📡</div>
+          <div class="empty-title">Awaiting input</div>
+          <p class="muted" style="font-size:0.8rem;max-width:300px">
+            Upload a CSV file or enter a sample manually to begin detection.
+          </p>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-state" id="loading-state">
+          <div class="loading-radar"></div>
+          <div class="loading-text" id="loading-text">Scanning traffic...</div>
+          <div class="loading-progress">
+            <div class="loading-progress-fill"></div>
+          </div>
+        </div>
+
+        <!-- File results -->
+        <div class="results-content" id="results-content">
+          <!-- Summary stats -->
+          <div class="stat-grid stagger" id="summary-stats"></div>
+
+          <!-- Table -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-icon">📋</div>
+              <span class="panel-title">Detection Results</span>
+              <div style="margin-left:auto;display:flex;gap:0.5rem">
+                <button class="btn btn-outline" style="padding:0.3rem 0.75rem;font-size:0.72rem"
+                        onclick="exportResults()">Export CSV</button>
+                <a href="/visualizations.html" class="btn btn-outline"
+                   style="padding:0.3rem 0.75rem;font-size:0.72rem">
+                  View Charts →
+                </a>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Label</th>
+                    <th>Recon Error</th>
+                    <th>Confidence</th>
+                    <th>Anomaly</th>
+                    <th>Explain</th>
+                  </tr>
+                </thead>
+                <tbody id="results-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Single sample result -->
+        <div class="single-result" id="single-result">
+          <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+            <div>
+              <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)">
+                Detection Result
+              </div>
+              <div class="single-verdict" id="single-verdict">—</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div class="stat-label">Confidence</div>
+              <div id="single-conf" style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800"></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="grid-2" style="margin-bottom:1rem">
+            <div>
+              <div class="stat-label">Reconstruction Error</div>
+              <div id="single-error" style="font-size:1.1rem;font-family:'JetBrains Mono'"></div>
+            </div>
+            <div>
+              <div class="stat-label">Anomaly</div>
+              <div id="single-anomaly"></div>
+            </div>
+          </div>
+
+          <div id="single-probs-wrapper" style="display:none">
+            <div class="stat-label" style="margin-bottom:0.5rem">Attack Probabilities</div>
+            <div class="attack-probs" id="single-probs"></div>
+          </div>
+
+          <div id="single-explain-btn-wrapper" style="margin-top:1.5rem;display:none">
+            <a href="/explainability.html" class="btn btn-outline">
+              🔍 View SHAP Explanation →
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let currentResults = [];
+let selectedFile   = null;
+
+// ── Mode switch ──
+function switchMode(mode) {
+  document.querySelectorAll('.mode-tab').forEach((t,i) => {
+    t.classList.toggle('active', (mode==='file' && i===0) || (mode==='manual' && i===1));
+  });
+  document.getElementById('file-mode').style.display   = mode === 'file'   ? 'block' : 'none';
+  document.getElementById('manual-mode').style.display = mode === 'manual' ? 'block' : 'none';
+  showEmpty();
+}
+
+// ── Drag & Drop ──
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.add('dragover');
+}
+function handleDragLeave(e) {
+  document.getElementById('dropzone').classList.remove('dragover');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) setFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) setFile(file);
+}
+function setFile(file) {
+  selectedFile = file;
+  const el = document.getElementById('filename-display');
+  el.textContent = `📄 ${file.name}  (${(file.size/1024).toFixed(1)} KB)`;
+  el.style.display = 'block';
+  document.getElementById('run-file-btn').disabled = false;
+  setAlert('file-alert', '');
+}
+
+// ── States ──
+function showEmpty() {
+  document.getElementById('empty-state').style.display    = 'flex';
+  document.getElementById('loading-state').style.display  = 'none';
+  document.getElementById('results-content').style.display = 'none';
+  document.getElementById('single-result').style.display  = 'none';
+}
+function showLoading(msg='Scanning traffic...') {
+  document.getElementById('empty-state').style.display    = 'none';
+  document.getElementById('loading-state').style.display  = 'flex';
+  document.getElementById('results-content').style.display = 'none';
+  document.getElementById('single-result').style.display  = 'none';
+  document.getElementById('loading-text').textContent = msg;
+}
+function showResults() {
+  document.getElementById('empty-state').style.display    = 'none';
+  document.getElementById('loading-state').style.display  = 'none';
+  document.getElementById('results-content').style.display = 'flex';
+  document.getElementById('single-result').style.display  = 'none';
+}
+function showSingle() {
+  document.getElementById('empty-state').style.display    = 'none';
+  document.getElementById('loading-state').style.display  = 'none';
+  document.getElementById('results-content').style.display = 'none';
+  document.getElementById('single-result').style.display  = 'block';
+}
+
+// ── Alerts ──
+function setAlert(id, msg, type='error') {
+  const el = document.getElementById(id);
+  if (!msg) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+// ── Badge helper ──
+function labelBadge(label) {
+  const map = {
+    normal: 'normal', DoS: 'dos', Probe: 'probe', R2L: 'r2l', U2R: 'u2r'
+  };
+  const cls = map[label] || 'anomaly';
+  return `<span class="badge badge-${cls}">${label}</span>`;
+}
+
+// ── Color for label ──
+function labelColor(label) {
+  return {normal:'var(--normal)',DoS:'var(--dos)',Probe:'var(--probe)',
+          R2L:'var(--r2l)',U2R:'var(--u2r)'}[label] || 'var(--muted)';
+}
+
+// ── Run file detection ──
+async function runFileDetection() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('run-file-btn');
+  btn.disabled = true;
+  document.getElementById('run-file-text').textContent = 'Running...';
+  showLoading('Preprocessing and scanning...');
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+
+  try {
+    const res  = await fetch(`${API}/api/detect/file`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Detection failed');
+    currentResults = data.predictions;
+    renderSummary(data.summary);
+    renderTable(data.predictions);
+    showResults();
+    // Store results for visualizations page
+    localStorage.setItem('ids_results', JSON.stringify(data));
+  } catch(e) {
+    showEmpty();
+    setAlert('file-alert', `Error: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('run-file-text').textContent = '⚡ Run Detection';
+  }
+}
+
+// ── Run manual detection ──
+async function runManualDetection() {
+  showLoading('Analysing sample...');
+  const payload = {
+    duration: +document.getElementById('m_duration').value,
+    protocol_type: document.getElementById('m_protocol').value,
+    service: document.getElementById('m_service').value,
+    flag: document.getElementById('m_flag').value,
+    src_bytes: +document.getElementById('m_src_bytes').value,
+    dst_bytes: +document.getElementById('m_dst_bytes').value,
+    count: +document.getElementById('m_count').value,
+    srv_count: +document.getElementById('m_srv_count').value,
+    serror_rate: +document.getElementById('m_serror_rate').value,
+    rerror_rate: +document.getElementById('m_rerror_rate').value,
+    same_srv_rate: +document.getElementById('m_same_srv_rate').value,
+    diff_srv_rate: +document.getElementById('m_diff_srv_rate').value,
+    logged_in: +document.getElementById('m_logged_in').value,
+    num_failed_logins: +document.getElementById('m_num_failed_logins').value,
+  };
+
+  try {
+    const res  = await fetch(`${API}/api/detect/single`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Detection failed');
+    renderSingleResult(data.prediction);
+    showSingle();
+    localStorage.setItem('ids_single', JSON.stringify(data.prediction));
+  } catch(e) {
+    showEmpty();
+    setAlert('manual-alert', `Error: ${e.message}`);
+  }
+}
+
+// ── Render summary stats ──
+function renderSummary(s) {
+  const dr = (s.detection_rate * 100).toFixed(1);
+  const breakdown = Object.entries(s.attack_breakdown || {})
+    .map(([k,v]) => `<span class="badge badge-${k.toLowerCase()}" style="font-size:0.65rem">${k}:${v}</span>`)
+    .join(' ');
+
+  document.getElementById('summary-stats').innerHTML = `
+    <div class="stat-card cyan">
+      <div class="stat-label">Total Samples</div>
+      <div class="stat-value">${s.total_samples.toLocaleString()}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Normal</div>
+      <div class="stat-value" style="color:var(--green)">${s.normal_count.toLocaleString()}</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Anomalies</div>
+      <div class="stat-value" style="color:var(--red)">${s.anomaly_count.toLocaleString()}</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Detection Rate</div>
+      <div class="stat-value" style="color:var(--yellow)">${dr}%</div>
+      <div class="stat-sub" style="margin-top:0.5rem">${breakdown}</div>
+    </div>
+  `;
+}
+
+// ── Render results table ──
+function renderTable(predictions) {
+  const tbody = document.getElementById('results-tbody');
+  const rows  = predictions.slice(0, 500); // cap at 500 for performance
+  tbody.innerHTML = rows.map(r => {
+    const confPct  = (r.confidence * 100).toFixed(1);
+    const color    = labelColor(r.label);
+    const errClass = r.reconstruction_error > 1 ? 'style="color:var(--red)"' : '';
+    return `
+      <tr class="${r.is_anomaly ? 'anomaly' : ''}">
+        <td class="muted">${r.sample_id}</td>
+        <td>${labelBadge(r.label)}</td>
+        <td>
+          <span class="error-bar-val" ${errClass}>
+            ${r.reconstruction_error.toFixed(4)}
+          </span>
+        </td>
+        <td>
+          <div class="confidence-bar">
+            <div class="confidence-track">
+              <div class="confidence-fill"
+                   style="width:${confPct}%;background:${color}"></div>
+            </div>
+            <span style="font-size:0.72rem;color:var(--muted);min-width:36px">
+              ${confPct}%
+            </span>
+          </div>
+        </td>
+        <td>
+          ${r.is_anomaly
+            ? '<span style="color:var(--red)">⚠ Yes</span>'
+            : '<span style="color:var(--green)">✓ No</span>'}
+        </td>
+        <td>
+          ${r.is_anomaly
+            ? `<button class="btn btn-outline"
+                       style="padding:2px 8px;font-size:0.68rem"
+                       onclick="openShap(${r.sample_id})">
+                 SHAP
+               </button>`
+            : '<span class="muted">—</span>'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (predictions.length > 500) {
+    tbody.innerHTML += `
+      <tr><td colspan="6" class="muted" style="text-align:center;padding:1rem">
+        Showing first 500 of ${predictions.length} samples
+      </td></tr>`;
+  }
+}
+
+// ── Render single result ──
+function renderSingleResult(r) {
+  const color = labelColor(r.label);
+  const el    = document.getElementById('single-result');
+  el.className = `single-result ${r.is_anomaly ? 'anomaly' : 'normal'}`;
+
+  document.getElementById('single-verdict').style.color = color;
+  document.getElementById('single-verdict').textContent = r.label.toUpperCase();
+  document.getElementById('single-conf').textContent    = `${(r.confidence*100).toFixed(1)}%`;
+  document.getElementById('single-conf').style.color    = color;
+  document.getElementById('single-error').textContent   = r.reconstruction_error.toFixed(6);
+  document.getElementById('single-anomaly').innerHTML   = r.is_anomaly
+    ? '<span style="color:var(--red)">⚠ Anomaly detected</span>'
+    : '<span style="color:var(--green)">✓ Normal traffic</span>';
+
+  if (r.is_anomaly && Object.keys(r.attack_probs).length > 0) {
+    document.getElementById('single-probs-wrapper').style.display = 'block';
+    const colors = {DoS:'var(--dos)',Probe:'var(--probe)',R2L:'var(--r2l)',U2R:'var(--u2r)'};
+    document.getElementById('single-probs').innerHTML =
+      Object.entries(r.attack_probs).map(([cls, prob]) => `
+        <div class="prob-card">
+          <div class="prob-val" style="color:${colors[cls]||'var(--cyan)'}">
+            ${(prob*100).toFixed(1)}%
+          </div>
+          <div class="prob-label">${cls}</div>
+        </div>
+      `).join('');
+    document.getElementById('single-explain-btn-wrapper').style.display = 'block';
+  }
+}
+
+// ── Open SHAP (stores sample id, navigates) ──
+function openShap(sampleId) {
+  localStorage.setItem('shap_sample_id', sampleId);
+  window.location.href = `/explainability.html?sample=${sampleId}`;
+}
+
+// ── Export results as CSV ──
+function exportResults() {
+  if (!currentResults.length) return;
+  const rows = [['sample_id','label','reconstruction_error','confidence','is_anomaly']];
+  currentResults.forEach(r => rows.push([
+    r.sample_id, r.label,
+    r.reconstruction_error, r.confidence, r.is_anomaly
+  ]));
+  const csv  = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'ids_results.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Load threshold info ──
+async function loadThresholdInfo() {
+  try {
+    const res  = await fetch(`${API}/api/threshold`);
+    const data = await res.json();
+    document.getElementById('threshold-info').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <div>
+          <div class="stat-label">Ensemble Threshold</div>
+          <div style="color:var(--cyan);font-size:1rem;font-weight:600">
+            ${data.threshold}
+          </div>
+        </div>
+        <div>
+          <div class="stat-label">ROC-AUC</div>
+          <div style="color:var(--green);font-size:1rem;font-weight:600">
+            ${data.roc_auc}
+          </div>
+        </div>
+        <div>
+          <div class="stat-label">Pct Threshold</div>
+          <div>${data.t_percentile}</div>
+        </div>
+        <div>
+          <div class="stat-label">F1 Threshold</div>
+          <div>${data.t_f1}</div>
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    document.getElementById('threshold-info').innerHTML =
+      '<span style="color:var(--red)">API not reachable</span>';
+  }
+}
+
+loadThresholdInfo();
+</script>
+</body>
+</html>

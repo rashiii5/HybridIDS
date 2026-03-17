@@ -1,0 +1,57 @@
+{
+  "1_Supervised": {
+    "accuracy": 0.5948,
+    "precision": 0.4091,
+    "recall": 0.411,
+    "macro_f1": 0.2916,
+    "mcc": 0.2027,
+    "roc_auc": null,
+    "per_class_f1": {
+      "DoS": 0.7591,
+      "Probe": 0.3061,
+      "R2L": 0.0196,
+      "U2R": 0.0818
+    },
+    "latency_ms": 0.0094
+  },
+  "2_VAE_Only": {
+    "accuracy": 0.7033,
+    "precision": 0.7588,
+    "recall": 0.7319,
+    "macro_f1": 0.7,
+    "mcc": 0.4899,
+    "roc_auc": 0.9347,
+    "per_class_f1": {},
+    "latency_ms": 0.0424
+  },
+  "3_Basic_Hybrid": {
+    "accuracy": 0.7053,
+    "precision": 0.5856,
+    "recall": 0.5128,
+    "macro_f1": 0.4926,
+    "mcc": 0.4595,
+    "roc_auc": null,
+    "per_class_f1": {
+      "DoS": 0.8027,
+      "Probe": 0.7216,
+      "R2L": 0.2227,
+      "U2R": 0.2233
+    },
+    "latency_ms": 32.5633
+  },
+  "4_Full_Hybrid": {
+    "accuracy": 0.7417,
+    "precision": 0.7504,
+    "recall": 0.6122,
+    "macro_f1": 0.6166,
+    "mcc": 0.5402,
+    "roc_auc": null,
+    "per_class_f1": {
+      "DoS": 0.8244,
+      "Probe": 0.7764,
+      "R2L": 0.2811,
+      "U2R": 0.5846
+    },
+    "latency_ms": 34.8018
+  }
+}

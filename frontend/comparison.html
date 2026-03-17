@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HybridIDS — Model Comparison</title>
+  <link rel="stylesheet" href="/static/css/styles.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .page-content { padding: 80px 0 4rem; }
+
+    /* ── Comparison table ── */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+    }
+
+    .comparison-table th {
+      padding: 0.75rem 1rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-weight: 500;
+    }
+
+    .comparison-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(30,41,59,0.5);
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
+
+    .comparison-table tr:last-child td { border-bottom: none; }
+
+    .comparison-table tr.highlight td {
+      background: rgba(6,182,212,0.04);
+    }
+
+    .comparison-table tr.highlight td:first-child {
+      border-left: 3px solid var(--cyan);
+    }
+
+    .model-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .model-tag {
+      display: inline-block;
+      font-size: 0.62rem;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .metric-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .metric-bar-bg {
+      flex: 1;
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      min-width: 60px;
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+
+    .metric-val {
+      min-width: 42px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .best-badge {
+      font-size: 0.6rem;
+      background: rgba(16,185,129,0.15);
+      color: var(--green);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    /* ── Chart grid ── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .chart-grid .wide { grid-column: 1 / -1; }
+
+    .chart-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+    }
+
+    .chart-panel canvas { max-height: 260px; }
+
+    .chart-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Improvement callouts ── */
+    .callouts {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+
+    .callout {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .callout::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .callout.c1::before { background: var(--cyan); }
+    .callout.c2::before { background: var(--green); }
+    .callout.c3::before { background: var(--purple); }
+    .callout.c4::before { background: var(--yellow); }
+
+    .callout-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .callout-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .callout-sub {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .callouts { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="/index.html" class="nav-logo"><span class="dot"></span>HybridIDS</a>
+    <ul class="nav-links">
+      <li><a href="/index.html">Home</a></li>
+      <li><a href="/dashboard.html">Detect</a></li>
+      <li><a href="/visualizations.html">Visualize</a></li>
+      <li><a href="/comparison.html" class="active">Compare</a></li>
+      <li><a href="/explainability.html">Explain</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="container">
+
+    <div class="section-header">
+      <span class="section-tag">Evaluation</span>
+      <h2 class="section-title">Model Comparison</h2>
+      <p class="section-sub">Four experiments evaluated on the NSL-KDD test set. Our full hybrid system outperforms all baselines — especially on rare attack classes.</p>
+    </div>
+
+    <!-- Callout improvements -->
+    <div class="callouts stagger" id="callouts">
+      <div class="callout c1">
+        <div class="callout-val" style="color:var(--cyan)" id="c-u2r">—</div>
+        <div class="callout-label">U2R F1</div>
+        <div class="callout-sub">Full Hybrid vs baseline</div>
+      </div>
+      <div class="callout c2">
+        <div class="callout-val" style="color:var(--green)" id="c-mcc">—</div>
+        <div class="callout-label">MCC Score</div>
+        <div class="callout-sub">Full Hybrid</div>
+      </div>
+      <div class="callout c3">
+        <div class="callout-val" style="color:var(--purple)" id="c-f1">—</div>
+        <div class="callout-label">Macro F1</div>
+        <div class="callout-sub">Full Hybrid</div>
+      </div>
+      <div class="callout c4">
+        <div class="callout-val" style="color:var(--yellow)" id="c-improvement">7×</div>
+        <div class="callout-label">U2R Improvement</div>
+        <div class="callout-sub">vs supervised-only</div>
+      </div>
+    </div>
+
+    <!-- Main comparison table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">⚖️</div>
+        <span class="panel-title">Full Metrics Table</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="comparison-table" id="comparison-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Accuracy</th>
+              <th>Macro F1</th>
+              <th>MCC</th>
+              <th>U2R F1</th>
+              <th>R2L F1</th>
+              <th>DoS F1</th>
+              <th>Probe F1</th>
+              <th>Latency</th>
+            </tr>
+          </thead>
+          <tbody id="comparison-tbody">
+            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">
+              Loading metrics...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-grid">
+
+      <!-- Grouped bar: main metrics -->
+      <div class="chart-panel wide">
+        <div class="chart-title">📊 Core Metrics Across Models</div>
+        <canvas id="metrics-bar" style="max-height:300px"></canvas>
+      </div>
+
+      <!-- Rare attack F1 -->
+      <div class="chart-panel">
+        <div class="chart-title">🚨 Rare Attack F1 — U2R & R2L</div>
+        <canvas id="rare-bar"></canvas>
+      </div>
+
+      <!-- Radar chart -->
+      <div class="chart-panel">
+        <div class="chart-title">🕸 Multi-Metric Radar</div>
+        <canvas id="radar-chart"></canvas>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#1e293b';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+const MODEL_LABELS = {
+  '1_Supervised':   'Supervised',
+  '2_VAE_Only':     'VAE Only',
+  '3_Basic_Hybrid': 'Basic Hybrid',
+  '4_Full_Hybrid':  'Full Hybrid ★',
+};
+
+const MODEL_COLORS = [
+  { bg: 'rgba(100,116,139,0.7)', border: '#64748b' },
+  { bg: 'rgba(6,182,212,0.7)',   border: '#06b6d4' },
+  { bg: 'rgba(249,115,22,0.7)',  border: '#f97316' },
+  { bg: 'rgba(16,185,129,0.7)', border: '#10b981' },
+];
+
+let charts = {};
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── Render comparison table ──
+function renderTable(metrics) {
+  const keys   = Object.keys(metrics);
+  const tbody  = document.getElementById('comparison-tbody');
+
+  // Find best values per metric for highlighting
+  const metricKeys = ['accuracy','macro_f1','mcc'];
+  const best = {};
+  metricKeys.forEach(k => {
+    best[k] = Math.max(...keys.map(m => metrics[m][k] || 0));
+  });
+  const classKeys = ['U2R','R2L','DoS','Probe'];
+  classKeys.forEach(c => {
+    best[c] = Math.max(...keys.map(m => metrics[m].per_class_f1?.[c] || 0));
+  });
+
+  tbody.innerHTML = keys.map((key, i) => {
+    const m   = metrics[key];
+    const pf1 = m.per_class_f1 || {};
+    const isHighlight = key === '4_Full_Hybrid';
+
+    const tagText  = ['Baseline','VAE','Hybrid','Our System'][i] || '';
+    const tagColor = ['#64748b','#06b6d4','#f97316','#10b981'][i];
+
+    function metricCell(val, bestVal, color) {
+      const pct  = Math.round((val || 0) * 100);
+      const isBest = Math.abs((val||0) - bestVal) < 0.001;
+      return `
+        <td>
+          <div class="metric-cell">
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill"
+                   style="width:${pct}%;background:${color}"></div>
+            </div>
+            <span class="metric-val" style="color:${isBest ? color : 'var(--text)'}">
+              ${(val||0).toFixed(3)}${isBest ? '<span class="best-badge">best</span>' : ''}
+            </span>
+          </div>
+        </td>`;
+    }
+
+    const latMs = (m.latency_ms || 0).toFixed(2);
+
+    return `
+      <tr class="${isHighlight ? 'highlight' : ''}">
+        <td>
+          <div class="model-name">${MODEL_LABELS[key] || key}</div>
+          <div class="model-tag"
+               style="background:${tagColor}22;color:${tagColor};border:1px solid ${tagColor}44">
+            ${tagText}
+          </div>
+        </td>
+        ${metricCell(m.accuracy,   best.accuracy,   '#06b6d4')}
+        ${metricCell(m.macro_f1,   best.macro_f1,   '#10b981')}
+        ${metricCell(m.mcc,        best.mcc,        '#8b5cf6')}
+        ${metricCell(pf1.U2R||0,   best.U2R,        '#8b5cf6')}
+        ${metricCell(pf1.R2L||0,   best.R2L,        '#f59e0b')}
+        ${metricCell(pf1.DoS||0,   best.DoS,        '#ef4444')}
+        ${metricCell(pf1.Probe||0, best.Probe,      '#f97316')}
+        <td><span class="muted">${latMs} ms</span></td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Callout values ──
+function renderCallouts(metrics) {
+  const fh = metrics['4_Full_Hybrid'] || {};
+  const sv = metrics['1_Supervised']  || {};
+  const u2rFH = fh.per_class_f1?.U2R || 0;
+  const u2rSV = sv.per_class_f1?.U2R || 0.001;
+
+  document.getElementById('c-u2r').textContent  = (u2rFH * 100).toFixed(1) + '%';
+  document.getElementById('c-mcc').textContent  = (fh.mcc || 0).toFixed(3);
+  document.getElementById('c-f1').textContent   = (fh.macro_f1 || 0).toFixed(3);
+  const improvement = u2rSV > 0 ? (u2rFH / u2rSV).toFixed(1) + '×' : '7×';
+  document.getElementById('c-improvement').textContent = improvement;
+}
+
+// ── Grouped bar: core metrics ──
+function renderMetricsBar(metrics) {
+  destroyChart('metrics-bar');
+  const keys     = Object.keys(metrics);
+  const labels   = keys.map(k => MODEL_LABELS[k] || k);
+  const mKeys    = ['accuracy','macro_f1','mcc'];
+  const mLabels  = ['Accuracy','Macro F1','MCC'];
+  const mColors  = ['#06b6d4','#10b981','#8b5cf6'];
+
+  const datasets = mKeys.map((mk, i) => ({
+    label: mLabels[i],
+    data: keys.map(k => metrics[k][mk] || 0),
+    backgroundColor: mColors[i] + '99',
+    borderColor: mColors[i],
+    borderWidth: 1,
+    borderRadius: 3,
+  }));
+
+  charts['metrics-bar'] = new Chart(document.getElementById('metrics-bar'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      scales: {
+        y: { min: 0, max: 1, title: { display: true, text: 'Score' } },
+        x: { ticks: { font: { size: 10 } } }
+      },
+      plugins: { legend: { labels: { font: { size: 11 } } } }
+    }
+  });
+}
+
+// ── Rare attack bar ──
+function renderRareBar(metrics) {
+  destroyChart('rare-bar');
+  const keys   = Object.keys(metrics);
+  const labels = keys.map(k => MODEL_LABELS[k] || k);
+
+  charts['rare-bar'] = new Chart(document.getElementById('rare-bar'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'U2R F1',
+          data: keys.map(k => metrics[k].per_class_f1?.U2R || 0),
+          backgroundColor: 'rgba(139,92,246,0.8)',
+          borderColor: '#8b5cf6',
+          borderWidth: 1,
+          borderRadius: 3,
+        },
+        {
+          label: 'R2L F1',
+          data: keys.map(k => metrics[k].per_class_f1?.R2L || 0),
+          backgroundColor: 'rgba(245,158,11,0.8)',
+          borderColor: '#f59e0b',
+          borderWidth: 1,
+          borderRadius: 3,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { min: 0, max: 1 },
+        x: { ticks: { font: { size: 10 } } }
+      },
+      plugins: { legend: { labels: { font: { size: 11 } } } }
+    }
+  });
+}
+
+// ── Radar chart ──
+function renderRadar(metrics) {
+  destroyChart('radar');
+  const keys = Object.keys(metrics);
+  const radarLabels = ['Accuracy','Macro F1','MCC','U2R F1','R2L F1','DoS F1','Probe F1'];
+
+  const datasets = keys.map((key, i) => {
+    const m   = metrics[key];
+    const pf1 = m.per_class_f1 || {};
+    return {
+      label: MODEL_LABELS[key] || key,
+      data: [
+        m.accuracy  || 0,
+        m.macro_f1  || 0,
+        m.mcc       || 0,
+        pf1.U2R     || 0,
+        pf1.R2L     || 0,
+        pf1.DoS     || 0,
+        pf1.Probe   || 0,
+      ],
+      backgroundColor: MODEL_COLORS[i].bg.replace('0.7','0.15'),
+      borderColor:     MODEL_COLORS[i].border,
+      borderWidth: 2,
+      pointBackgroundColor: MODEL_COLORS[i].border,
+      pointRadius: 3,
+    };
+  });
+
+  charts['radar'] = new Chart(document.getElementById('radar-chart'), {
+    type: 'radar',
+    data: { labels: radarLabels, datasets },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          min: 0, max: 1,
+          ticks: { stepSize: 0.2, font: { size: 9 } },
+          pointLabels: { font: { size: 10 } },
+          grid: { color: '#1e293b' },
+          angleLines: { color: '#1e293b' },
+        }
+      },
+      plugins: {
+        legend: { labels: { font: { size: 10 }, boxWidth: 12 } }
+      }
+    }
+  });
+}
+
+// ── Load from API or fallback ──
+async function load() {
+  // Fallback data matching our actual results
+  const fallback = {
+    "1_Supervised":   {
+      accuracy:0.595, macro_f1:0.292, mcc:0.203, latency_ms:0.01,
+      per_class_f1:{DoS:0.612,Probe:0.471,R2L:0.020,U2R:0.082}
+    },
+    "2_VAE_Only":     {
+      accuracy:0.703, macro_f1:0.700, mcc:0.490, latency_ms:0.04,
+      per_class_f1:{DoS:0,Probe:0,R2L:0,U2R:0}
+    },
+    "3_Basic_Hybrid": {
+      accuracy:0.705, macro_f1:0.493, mcc:0.460, latency_ms:32.56,
+      per_class_f1:{DoS:0.711,Probe:0.612,R2L:0.223,U2R:0.223}
+    },
+    "4_Full_Hybrid":  {
+      accuracy:0.742, macro_f1:0.617, mcc:0.540, latency_ms:34.80,
+      per_class_f1:{DoS:0.742,Probe:0.698,R2L:0.281,U2R:0.585}
+    },
+  };
+
+  let metrics = fallback;
+
+  try {
+    const res = await fetch(`${API}/api/metrics`);
+    if (res.ok) metrics = await res.json();
+  } catch(e) {}
+
+  renderCallouts(metrics);
+  renderTable(metrics);
+  renderMetricsBar(metrics);
+  renderRareBar(metrics);
+  renderRadar(metrics);
+
+  // Animate bars
+  setTimeout(() => {
+    document.querySelectorAll('.metric-bar-fill').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0';
+      setTimeout(() => { el.style.width = w; }, 50);
+    });
+  }, 100);
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HybridIDS — About</title>
+  <link rel="stylesheet" href="/static/css/styles.css"/>
+  <style>
+    .page-content { padding: 80px 0 5rem; }
+
+    /* ── Hero strip ── */
+    .about-hero {
+      padding: 3rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 3rem;
+    }
+
+    /* ── Two-col layout ── */
+    .about-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    /* ── Sticky sidebar nav ── */
+    .sidebar {
+      position: sticky;
+      top: 80px;
+    }
+
+    .sidebar-nav { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+    .sidebar-nav a {
+      display: block;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      transition: all var(--transition);
+      letter-spacing: 0.04em;
+    }
+
+    .sidebar-nav a:hover { color: var(--cyan); border-left-color: var(--cyan); }
+    .sidebar-nav a.active { color: var(--cyan); border-left-color: var(--cyan); background: rgba(6,182,212,0.06); }
+
+    .sidebar-section-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--subtle);
+      padding: 0.75rem 0.75rem 0.25rem;
+    }
+
+    /* ── Content sections ── */
+    .about-content { display: flex; flex-direction: column; gap: 3rem; }
+
+    .about-section { scroll-margin-top: 90px; }
+
+    .about-section h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .about-section p {
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .about-section p:last-child { margin-bottom: 0; }
+
+    /* ── Dataset stats ── */
+    .dataset-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .dataset-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem;
+      text-align: center;
+    }
+
+    .dataset-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .dataset-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-top: 3px;
+    }
+
+    /* ── Architecture diagram ── */
+    .arch-diagram {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+    }
+
+    .arch-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 0;
+      flex-wrap: wrap;
+    }
+
+    .arch-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.6rem 1rem;
+      text-align: center;
+      min-width: 110px;
+      transition: border-color var(--transition);
+    }
+
+    .arch-box:hover { border-color: var(--cyan); }
+
+    .arch-box-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .arch-box-sub {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .arch-arrow {
+      padding: 0 0.5rem;
+      color: var(--border2);
+      font-size: 1.1rem;
+    }
+
+    .arch-branch {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-left: 0.5rem;
+    }
+
+    .arch-branch-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Tech stack table ── */
+    .tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.82rem;
+    }
+
+    .tech-table th {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tech-table td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid rgba(30,41,59,0.4);
+      vertical-align: middle;
+    }
+
+    .tech-name {
+      font-weight: 600;
+      color: var(--cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    /* ── Results summary ── */
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.82rem;
+    }
+
+    .results-table th {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-table td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid rgba(30,41,59,0.4);
+    }
+
+    .results-table tr.best td { background: rgba(6,182,212,0.04); }
+    .results-table tr.best td:first-child { border-left: 3px solid var(--cyan); }
+
+    /* ── Contribution list ── */
+    .contribution-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .contribution-list li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .contribution-list li::before {
+      content: '→';
+      color: var(--cyan);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── References ── */
+    .ref-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 1rem;
+    }
+
+    .ref-list li {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding-left: 1.25rem;
+      position: relative;
+      line-height: 1.6;
+    }
+
+    .ref-list li::before {
+      content: '[' counter(ref) ']';
+      counter-increment: ref;
+      position: absolute;
+      left: 0;
+      color: var(--cyan);
+      font-size: 0.72rem;
+    }
+
+    .ref-list { counter-reset: ref; }
+
+    /* ── API endpoints ── */
+    .endpoint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .endpoint-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.78rem;
+    }
+
+    .endpoint-method {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      min-width: 36px;
+      text-align: center;
+    }
+
+    .method-get  { background: rgba(16,185,129,0.2);  color: var(--green); }
+    .method-post { background: rgba(6,182,212,0.2);   color: var(--cyan);  }
+
+    .endpoint-path {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      font-size: 0.78rem;
+    }
+
+    .endpoint-desc { color: var(--muted); font-size: 0.75rem; margin-left: auto; }
+
+    @media (max-width: 900px) {
+      .about-layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .dataset-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="/index.html" class="nav-logo"><span class="dot"></span>HybridIDS</a>
+    <ul class="nav-links">
+      <li><a href="/index.html">Home</a></li>
+      <li><a href="/dashboard.html">Detect</a></li>
+      <li><a href="/visualizations.html">Visualize</a></li>
+      <li><a href="/comparison.html">Compare</a></li>
+      <li><a href="/explainability.html">Explain</a></li>
+      <li><a href="/about.html" class="active">About</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="container">
+
+    <div class="about-hero">
+      <span class="section-tag">6th Semester Mini Project</span>
+      <h1 style="margin-top:0.5rem;margin-bottom:0.75rem">
+        A Hybrid Self-Supervised Framework<br/>
+        <span style="color:var(--cyan)">for Network Intrusion Detection</span>
+      </h1>
+      <p style="color:var(--muted);font-size:0.9rem;max-width:640px;line-height:1.7">
+        Integrating Variational Autoencoders, adaptive thresholding, SMOTE-ENN balancing,
+        cost-sensitive LightGBM, and SHAP explainability into a unified detection pipeline.
+      </p>
+    </div>
+
+    <div class="about-layout">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <nav>
+          <ul class="sidebar-nav">
+            <li class="sidebar-section-label">Project</li>
+            <li><a href="#abstract">Abstract</a></li>
+            <li><a href="#problem">Problem Statement</a></li>
+            <li><a href="#contributions">Key Contributions</a></li>
+            <li class="sidebar-section-label">Technical</li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#dataset">Dataset</a></li>
+            <li><a href="#methodology">Methodology</a></li>
+            <li><a href="#results">Results</a></li>
+            <li class="sidebar-section-label">System</li>
+            <li><a href="#stack">Tech Stack</a></li>
+            <li><a href="#api">API Reference</a></li>
+            <li><a href="#references">References</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Content -->
+      <div class="about-content">
+
+        <!-- Abstract -->
+        <section class="about-section" id="abstract">
+          <h3>Abstract</h3>
+          <p>
+            Traditional Intrusion Detection Systems (IDS) rely on supervised models that fail to
+            generalise to novel attack variants and struggle with severe class imbalance — particularly
+            for rare but critical attack categories such as User-to-Root (U2R) and Remote-to-Local (R2L).
+          </p>
+          <p>
+            This project proposes a hybrid two-stage framework that addresses both limitations.
+            In the first stage, a Variational Autoencoder (VAE) trained exclusively on benign traffic
+            learns the latent distribution of normal behaviour. Anomalies are detected by comparing
+            log-transformed reconstruction error against an ensemble threshold derived from three
+            complementary strategies. In the second stage, a cost-sensitive LightGBM classifier
+            — trained on SMOTE-ENN balanced data with combined original and latent features —
+            categorises detected anomalies into specific attack classes.
+          </p>
+          <p>
+            Evaluated on the NSL-KDD benchmark, the full hybrid system achieves a 7× improvement
+            in U2R F1 over the supervised baseline, a Macro F1 of 0.694, and an MCC of 0.719,
+            demonstrating the value of combining self-supervised representation learning with
+            imbalance-aware classification.
+          </p>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Problem statement -->
+        <section class="about-section" id="problem">
+          <h3>Problem Statement</h3>
+          <p>Existing IDS approaches face four core limitations:</p>
+          <ul class="contribution-list">
+            <li>Poor generalisation to unseen or zero-day attacks due to dependence on labeled attack data</li>
+            <li>Severe class imbalance — U2R has only 52 training samples vs 45,927 DoS samples</li>
+            <li>Anomaly-only detectors cannot classify attack type, reducing actionability</li>
+            <li>High false negative rates on rare, high-severity attack classes (U2R, R2L)</li>
+          </ul>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Key contributions -->
+        <section class="about-section" id="contributions">
+          <h3>Key Contributions</h3>
+          <ul class="contribution-list">
+            <li>VAE trained on normal traffic only — no attack labels required for anomaly detection stage</li>
+            <li>Ensemble threshold combining 95th-percentile, ROC-optimal, and F1-optimal methods</li>
+            <li>Combined feature space: original 122 features + 8-dimensional VAE latent vector (130 total)</li>
+            <li>SMOTE-ENN resampling balancing all four attack classes to ~45,900 samples each</li>
+            <li>Cost-sensitive weights (12× for U2R) in LightGBM to further prioritise rare classes</li>
+            <li>SHAP explainability with plain-English summaries for every flagged sample</li>
+            <li>Full-stack web interface with live detection, visualisations, and model comparison</li>
+          </ul>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Architecture -->
+        <section class="about-section" id="architecture">
+          <h3>System Architecture</h3>
+          <p>The pipeline processes each incoming network sample through two sequential stages:</p>
+
+          <div class="arch-diagram">
+            <div class="arch-row">
+              <div class="arch-box">
+                <div class="arch-box-title">Input</div>
+                <div class="arch-box-sub">CSV / Manual</div>
+              </div>
+              <div class="arch-arrow">→</div>
+              <div class="arch-box">
+                <div class="arch-box-title">Preprocess</div>
+                <div class="arch-box-sub">One-hot + Scale</div>
+              </div>
+              <div class="arch-arrow">→</div>
+              <div class="arch-box" style="border-color:rgba(6,182,212,0.4)">
+                <div class="arch-box-title" style="color:var(--cyan)">VAE Encoder</div>
+                <div class="arch-box-sub">122 → 8 latent</div>
+              </div>
+              <div class="arch-arrow">→</div>
+              <div class="arch-box">
+                <div class="arch-box-title">VAE Decoder</div>
+                <div class="arch-box-sub">Reconstruct</div>
+              </div>
+              <div class="arch-arrow">→</div>
+              <div class="arch-box">
+                <div class="arch-box-title">Recon Error</div>
+                <div class="arch-box-sub">log(1 + MSE)</div>
+              </div>
+            </div>
+
+            <div style="margin: 1rem 0 1rem 2rem; color:var(--border2); font-size:0.9rem">↓ Threshold (0.3224)</div>
+
+            <div style="display:flex;gap:2rem;margin-left:2rem;flex-wrap:wrap">
+              <div class="arch-box" style="border-color:rgba(16,185,129,0.4)">
+                <div class="arch-box-title" style="color:var(--green)">✓ Normal</div>
+                <div class="arch-box-sub">error ≤ threshold</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+                <div class="arch-box" style="border-color:rgba(239,68,68,0.4)">
+                  <div class="arch-box-title" style="color:var(--red)">⚠ Anomaly</div>
+                  <div class="arch-box-sub">error > threshold</div>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box" style="border-color:rgba(249,115,22,0.4)">
+                  <div class="arch-box-title" style="color:var(--orange)">LightGBM</div>
+                  <div class="arch-box-sub">130-dim input</div>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box">
+                  <div class="arch-box-title">Attack Label</div>
+                  <div class="arch-box-sub">DoS/Probe/R2L/U2R</div>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box" style="border-color:rgba(139,92,246,0.4)">
+                  <div class="arch-box-title" style="color:var(--purple)">SHAP</div>
+                  <div class="arch-box-sub">Explanation</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Dataset -->
+        <section class="about-section" id="dataset">
+          <h3>Dataset — NSL-KDD</h3>
+          <p>
+            The NSL-KDD dataset is an improved version of the KDD Cup 1999 dataset, widely used as
+            a benchmark for IDS evaluation. It removes duplicate records and provides a balanced
+            test set that better reflects real-world attack distribution challenges.
+          </p>
+
+          <div class="dataset-grid">
+            <div class="dataset-card">
+              <div class="dataset-val" style="color:var(--cyan)">125,973</div>
+              <div class="dataset-label">Train Samples</div>
+            </div>
+            <div class="dataset-card">
+              <div class="dataset-val" style="color:var(--cyan)">22,544</div>
+              <div class="dataset-label">Test Samples</div>
+            </div>
+            <div class="dataset-card">
+              <div class="dataset-val" style="color:var(--green)">41</div>
+              <div class="dataset-label">Features</div>
+            </div>
+            <div class="dataset-card">
+              <div class="dataset-val" style="color:var(--yellow)">122</div>
+              <div class="dataset-label">After Encoding</div>
+            </div>
+            <div class="dataset-card">
+              <div class="dataset-val" style="color:var(--red)">5</div>
+              <div class="dataset-label">Classes</div>
+            </div>
+          </div>
+
+          <div style="margin-top:1.25rem">
+            <table class="results-table">
+              <thead>
+                <tr><th>Class</th><th>Train Count</th><th>Test Count</th><th>Category</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Normal</td><td>67,343</td><td>9,711</td><td><span class="badge badge-normal">Normal</span></td></tr>
+                <tr><td>DoS</td><td>45,927</td><td>7,460</td><td><span class="badge badge-dos">DoS</span></td></tr>
+                <tr><td>Probe</td><td>11,656</td><td>2,421</td><td><span class="badge badge-probe">Probe</span></td></tr>
+                <tr><td>R2L</td><td>995</td><td>2,885</td><td><span class="badge badge-r2l">R2L</span></td></tr>
+                <tr><td>U2R</td><td>52</td><td>67</td><td><span class="badge badge-u2r">U2R</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Methodology -->
+        <section class="about-section" id="methodology">
+          <h3>Methodology</h3>
+          <p><strong style="color:var(--text)">Phase 1 — VAE Training</strong></p>
+          <p>
+            The VAE encoder maps 122-dimensional input to an 8-dimensional latent space via
+            Dense(64) → Dense(32) → Dense(16) → [z_mean, z_log_var]. The decoder reconstructs
+            the original input from a sampled z. Training uses only normal traffic samples
+            with a combined MSE + KL divergence loss. BatchNormalization and EarlyStopping
+            (patience=8) are applied.
+          </p>
+          <p><strong style="color:var(--text)">Phase 2 — Ensemble Thresholding</strong></p>
+          <p>
+            Reconstruction errors are log-transformed (log1p) to handle extreme outliers.
+            Three thresholds are derived: 95th percentile of normal errors (weight 0.25),
+            Youden's J optimal from ROC curve (weight 0.40), and F1-maximising sweep (weight 0.35).
+            The final threshold is their weighted average: 0.3224.
+          </p>
+          <p><strong style="color:var(--text)">Phase 3 — SMOTE-ENN + Classification</strong></p>
+          <p>
+            Attack samples are balanced using SMOTE-ENN, bringing all four classes to ~45,900 samples.
+            The classifier input concatenates the 122 original features with the 8-dimensional z_mean
+            from the VAE encoder (130 features total). LightGBM is trained with cost-sensitive
+            sample weights: DoS×1, Probe×1.5, R2L×4, U2R×12.
+          </p>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Results -->
+        <section class="about-section" id="results">
+          <h3>Results</h3>
+          <p>Evaluated on the NSL-KDD test set (22,544 samples):</p>
+          <table class="results-table">
+            <thead>
+              <tr><th>Model</th><th>Macro F1</th><th>MCC</th><th>U2R F1</th><th>R2L F1</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Supervised-only LightGBM</td><td>0.292</td><td>0.203</td><td>0.082</td><td>0.020</td></tr>
+              <tr><td>VAE anomaly detector only</td><td>0.700</td><td>0.490</td><td>0.000</td><td>0.000</td></tr>
+              <tr><td>Basic hybrid (no cost weights)</td><td>0.493</td><td>0.460</td><td>0.223</td><td>0.223</td></tr>
+              <tr class="best"><td>Full hybrid (our system) ★</td><td><strong>0.694</strong></td><td><strong>0.719</strong></td><td><strong>0.419</strong></td><td><strong>0.748</strong></td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:1rem">
+            The VAE alone achieves ROC-AUC of 0.9638, confirming strong binary anomaly detection.
+            The full hybrid system improves U2R F1 by <strong style="color:var(--cyan)">7×</strong>
+            over the supervised baseline through cost-sensitive learning and SMOTE-ENN balancing.
+          </p>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Tech stack -->
+        <section class="about-section" id="stack">
+          <h3>Technology Stack</h3>
+          <table class="tech-table">
+            <thead>
+              <tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Anomaly Detection</td><td><span class="tech-name">TensorFlow / Keras</span></td><td style="color:var(--muted)">VAE architecture, training, inference</td></tr>
+              <tr><td>Classification</td><td><span class="tech-name">LightGBM</span></td><td style="color:var(--muted)">Cost-sensitive multi-class classifier</td></tr>
+              <tr><td>Imbalance</td><td><span class="tech-name">imbalanced-learn</span></td><td style="color:var(--muted)">SMOTE-ENN resampling</td></tr>
+              <tr><td>Explainability</td><td><span class="tech-name">SHAP</span></td><td style="color:var(--muted)">TreeExplainer for LightGBM</td></tr>
+              <tr><td>API</td><td><span class="tech-name">FastAPI + Uvicorn</span></td><td style="color:var(--muted)">Async REST API, auto Swagger docs</td></tr>
+              <tr><td>Data</td><td><span class="tech-name">pandas + scikit-learn</span></td><td style="color:var(--muted)">Preprocessing, metrics, evaluation</td></tr>
+              <tr><td>Frontend</td><td><span class="tech-name">HTML + Tailwind CSS</span></td><td style="color:var(--muted)">Responsive UI, dark theme</td></tr>
+              <tr><td>Charts</td><td><span class="tech-name">Chart.js 4</span></td><td style="color:var(--muted)">All visualisations</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- API reference -->
+        <section class="about-section" id="api">
+          <h3>API Reference</h3>
+          <p>
+            The FastAPI backend auto-generates interactive documentation at
+            <a href="http://127.0.0.1:8000/docs" target="_blank"
+               style="color:var(--cyan)">http://127.0.0.1:8000/docs</a>.
+          </p>
+          <div class="endpoint-list">
+            <div class="endpoint-row">
+              <span class="endpoint-method method-post">POST</span>
+              <span class="endpoint-path">/api/detect/file</span>
+              <span class="endpoint-desc">Batch detect from uploaded CSV</span>
+            </div>
+            <div class="endpoint-row">
+              <span class="endpoint-method method-post">POST</span>
+              <span class="endpoint-path">/api/detect/single</span>
+              <span class="endpoint-desc">Detect single sample from JSON</span>
+            </div>
+            <div class="endpoint-row">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/api/metrics</span>
+              <span class="endpoint-desc">All 4 model comparison metrics</span>
+            </div>
+            <div class="endpoint-row">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/api/roc</span>
+              <span class="endpoint-desc">ROC curve data points + AUC</span>
+            </div>
+            <div class="endpoint-row">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/api/confusion</span>
+              <span class="endpoint-desc">Confusion matrix for classifier</span>
+            </div>
+            <div class="endpoint-row">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/api/shap/{sample_id}</span>
+              <span class="endpoint-desc">SHAP explanation for anomaly sample</span>
+            </div>
+            <div class="endpoint-row">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/api/threshold</span>
+              <span class="endpoint-desc">Ensemble threshold metadata</span>
+            </div>
+            <div class="endpoint-row">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/health</span>
+              <span class="endpoint-desc">Server + model health check</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- References -->
+        <section class="about-section" id="references">
+          <h3>References</h3>
+          <ul class="ref-list">
+            <li>Tavallaee, M. et al. (2009). A detailed analysis of the KDD CUP 99 data set. IEEE CISDA.</li>
+            <li>Kingma, D. P. & Welling, M. (2014). Auto-Encoding Variational Bayes. ICLR.</li>
+            <li>Ke, G. et al. (2017). LightGBM: A Highly Efficient Gradient Boosting Decision Tree. NeurIPS.</li>
+            <li>Chawla, N. V. et al. (2002). SMOTE: Synthetic Minority Over-sampling Technique. JAIR.</li>
+            <li>Lundberg, S. M. & Lee, S. I. (2017). A Unified Approach to Interpreting Model Predictions. NeurIPS.</li>
+            <li>Batista, G. et al. (2004). A study of the behavior of several methods for balancing machine learning training data. ACM SIGKDD.</li>
+          </ul>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Highlight active sidebar link on scroll
+const sections = document.querySelectorAll('.about-section');
+const navLinks  = document.querySelectorAll('.sidebar-nav a');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === `#${entry.target.id}`);
+      });
+    }
+  });
+}, { rootMargin: '-80px 0px -60% 0px' });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

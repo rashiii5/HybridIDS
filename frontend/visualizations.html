@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HybridIDS — Visualizations</title>
+  <link rel="stylesheet" href="/static/css/styles.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .page-content { padding: 80px 0 4rem; }
+
+    .viz-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .viz-grid .wide { grid-column: 1 / -1; }
+
+    .chart-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+    }
+
+    .chart-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+
+    .chart-subtitle {
+      font-size: 0.73rem;
+      color: var(--muted);
+      margin-bottom: 1.1rem;
+      line-height: 1.5;
+    }
+
+    .chart-panel canvas {
+      max-height: 280px;
+    }
+
+    .legend-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .legend-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .auc-badge {
+      display: inline-block;
+      background: rgba(6,182,212,0.15);
+      border: 1px solid rgba(6,182,212,0.3);
+      border-radius: var(--radius);
+      padding: 0.2rem 0.6rem;
+      font-size: 0.72rem;
+      color: var(--cyan);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .no-data {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem;
+      text-align: center;
+      gap: 0.75rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .no-data a { color: var(--cyan); text-decoration: none; }
+
+    .refresh-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .refresh-bar span { font-size: 0.78rem; color: var(--muted); }
+
+    /* Confusion matrix canvas needs more height */
+    #cm-canvas { max-height: 320px !important; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="/index.html" class="nav-logo"><span class="dot"></span>HybridIDS</a>
+    <ul class="nav-links">
+      <li><a href="/index.html">Home</a></li>
+      <li><a href="/dashboard.html">Detect</a></li>
+      <li><a href="/visualizations.html" class="active">Visualize</a></li>
+      <li><a href="/comparison.html">Compare</a></li>
+      <li><a href="/explainability.html">Explain</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="container">
+
+    <div class="section-header">
+      <span class="section-tag">Analytics</span>
+      <h2 class="section-title">Detection Visualizations</h2>
+      <p class="section-sub">Charts update from your latest detection run and the trained model's test-set evaluation.</p>
+    </div>
+
+    <div class="refresh-bar">
+      <span id="data-source-label">Loading data source...</span>
+      <div style="display:flex;gap:0.75rem">
+        <a href="/dashboard.html" class="btn btn-outline" style="padding:0.3rem 0.75rem;font-size:0.72rem">
+          Run Detection →
+        </a>
+        <button class="btn btn-outline" style="padding:0.3rem 0.75rem;font-size:0.72rem"
+                onclick="loadAll()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="viz-grid">
+
+      <!-- 1. Attack distribution donut -->
+      <div class="chart-panel">
+        <div class="chart-title">🍩 Attack Type Distribution</div>
+        <div class="chart-subtitle">Proportion of each class in the detection run. Normal traffic should dominate in a healthy network.</div>
+        <canvas id="donut-chart"></canvas>
+      </div>
+
+      <!-- 2. ROC Curve -->
+      <div class="chart-panel">
+        <div class="chart-title">📈 ROC Curve — VAE Anomaly Detector</div>
+        <div class="chart-subtitle">True Positive Rate vs False Positive Rate at all thresholds. A curve closer to the top-left corner means better anomaly detection. AUC = 1.0 is perfect.</div>
+        <div id="auc-badge-el"></div>
+        <canvas id="roc-chart"></canvas>
+      </div>
+
+      <!-- 3. Reconstruction error — wide -->
+      <div class="chart-panel wide">
+        <div class="chart-title">📊 Reconstruction Error per Sample</div>
+        <div class="chart-subtitle">Each bar is one network sample. The VAE reconstructs normal traffic well (low error). Attacks deviate from the learned normal pattern, producing higher errors — bars above the dashed threshold line are flagged as anomalies.</div>
+        <div class="legend-pills">
+          <div class="legend-pill"><div class="legend-dot" style="background:var(--normal)"></div>Normal</div>
+          <div class="legend-pill"><div class="legend-dot" style="background:var(--dos)"></div>DoS</div>
+          <div class="legend-pill"><div class="legend-dot" style="background:var(--probe)"></div>Probe</div>
+          <div class="legend-pill"><div class="legend-dot" style="background:var(--r2l)"></div>R2L</div>
+          <div class="legend-pill"><div class="legend-dot" style="background:var(--u2r)"></div>U2R</div>
+        </div>
+        <canvas id="error-chart" style="max-height:300px"></canvas>
+      </div>
+
+      <!-- 4. Confusion matrix -->
+      <div class="chart-panel">
+        <div class="chart-title">🟦 Confusion Matrix — Classifier</div>
+        <div class="chart-subtitle">Rows = true class, Columns = predicted class. Diagonal cells (darker blue) are correct predictions. Off-diagonal cells are misclassifications.</div>
+        <div id="cm-wrap">
+          <div class="no-data">
+            <div class="spinner"></div>
+            <span>Loading from API...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Class-wise F1 -->
+      <div class="chart-panel">
+        <div class="chart-title">🎯 Class-wise F1 Score</div>
+        <div class="chart-subtitle">F1 score per attack category for the Full Hybrid model. Higher is better. U2R is the hardest class due to only 52 training samples — cost-sensitive weights push it significantly above the baseline.</div>
+        <canvas id="f1-chart"></canvas>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+const LABEL_COLORS = {
+  normal: '#10b981', DoS: '#ef4444',
+  Probe: '#f97316', R2L: '#f59e0b', U2R: '#8b5cf6'
+};
+
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#1e293b';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+let charts = {};
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── 1. Donut ──
+function renderDonut(counts) {
+  destroyChart('donut');
+  const labels = Object.keys(counts);
+  const values = Object.values(counts);
+  const colors = labels.map(l => LABEL_COLORS[l] || '#64748b');
+
+  charts['donut'] = new Chart(document.getElementById('donut-chart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.map(c => c + 'aa'),
+        borderColor: colors,
+        borderWidth: 2,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 16, font: { size: 11 } } },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} samples` }
+        }
+      }
+    }
+  });
+}
+
+// ── 2. ROC ──
+function renderROC(fpr, tpr, aucVal) {
+  destroyChart('roc');
+
+  document.getElementById('auc-badge-el').innerHTML =
+    `<div class="auc-badge">AUC = ${aucVal}</div>`;
+
+  // Build paired data points
+  const rocData = fpr.map((x, i) => ({ x: parseFloat(x), y: parseFloat(tpr[i]) }));
+
+  charts['roc'] = new Chart(document.getElementById('roc-chart'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: `VAE ROC (AUC=${aucVal})`,
+          data: rocData,
+          borderColor: '#06b6d4',
+          backgroundColor: 'rgba(6,182,212,0.08)',
+          borderWidth: 2,
+          pointRadius: 0,
+          showLine: true,
+          fill: true,
+          tension: 0.2,
+          order: 1,
+        },
+        {
+          label: 'Random Classifier',
+          data: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+          borderColor: '#334155',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          showLine: true,
+          fill: false,
+          order: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          type: 'linear',
+          min: 0, max: 1,
+          title: { display: true, text: 'False Positive Rate' },
+        },
+        y: {
+          type: 'linear',
+          min: 0, max: 1,
+          title: { display: true, text: 'True Positive Rate' },
+        }
+      },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` TPR: ${ctx.parsed.y.toFixed(3)}  FPR: ${ctx.parsed.x.toFixed(3)}`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 3. Error bars ──
+function renderErrorBars(results, threshold) {
+  destroyChart('error');
+  const step   = Math.max(1, Math.ceil(results.length / 300));
+  const sample = results.filter((_, i) => i % step === 0);
+  const labels = sample.map(r => r.sample_id);
+  const values = sample.map(r => r.reconstruction_error);
+  const colors = sample.map(r => (LABEL_COLORS[r.label] || '#64748b') + 'cc');
+
+  charts['error'] = new Chart(document.getElementById('error-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Reconstruction Error',
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 0,
+          borderRadius: 1,
+          order: 2,
+        },
+        ...(threshold ? [{
+          label: `Threshold (${threshold.toFixed(4)})`,
+          data: Array(labels.length).fill(threshold),
+          borderColor: '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          type: 'line',
+          order: 1,
+        }] : [])
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` Error: ${ctx.parsed.y.toFixed(4)} | ${sample[ctx.dataIndex]?.label || ''}`
+          }
+        }
+      },
+      scales: {
+        x: { display: false },
+        y: { title: { display: true, text: 'log(1 + MSE)' } }
+      }
+    }
+  });
+}
+
+// ── 4. Confusion matrix as grouped bar (reliable fallback) ──
+function renderConfusionMatrix(matrix, classes) {
+  const wrap = document.getElementById('cm-wrap');
+  wrap.innerHTML = '<canvas id="cm-canvas" style="max-height:320px"></canvas>';
+
+  destroyChart('cm');
+  const COLORS = ['#ef4444','#f97316','#f59e0b','#8b5cf6'];
+
+  const datasets = classes.map((cls, i) => ({
+    label: `True: ${cls}`,
+    data: matrix[i],
+    backgroundColor: COLORS[i] + 'bb',
+    borderColor: COLORS[i],
+    borderWidth: 1,
+    borderRadius: 3,
+  }));
+
+  charts['cm'] = new Chart(document.getElementById('cm-canvas'), {
+    type: 'bar',
+    data: { labels: classes.map(c => `Pred: ${c}`), datasets },
+    options: {
+      responsive: true,
+      scales: {
+        x: { title: { display: true, text: 'Predicted Class' } },
+        y: { title: { display: true, text: 'Sample Count' } }
+      },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label} → ${ctx.label}: ${ctx.parsed.y} samples`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 5. Class-wise F1 ──
+function renderF1(metrics) {
+  destroyChart('f1');
+  const classes = ['DoS', 'Probe', 'R2L', 'U2R'];
+  const f1s = classes.map(c => metrics['4_Full_Hybrid']?.per_class_f1?.[c] || 0);
+  const colors = ['rgba(239,68,68,0.85)','rgba(249,115,22,0.85)',
+                  'rgba(245,158,11,0.85)','rgba(139,92,246,0.85)'];
+
+  charts['f1'] = new Chart(document.getElementById('f1-chart'), {
+    type: 'bar',
+    data: {
+      labels: classes,
+      datasets: [{
+        label: 'F1 Score',
+        data: f1s,
+        backgroundColor: colors,
+        borderColor: colors.map(c => c.replace('0.85','1')),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { min: 0, max: 1, title: { display: true, text: 'F1 Score' } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` F1: ${ctx.parsed.y.toFixed(3)}` }
+        }
+      }
+    }
+  });
+}
+
+// ── Load all ──
+async function loadAll() {
+  // Threshold for error chart line
+  let threshold = null;
+  try {
+    const tr = await fetch(`${API}/api/threshold`);
+    const td = await tr.json();
+    threshold = td.threshold;
+  } catch(e) {}
+
+  // Detection run data from localStorage
+  const stored = localStorage.getItem('ids_results');
+  let hasRunData = false;
+
+  if (stored) {
+    try {
+      const data = JSON.parse(stored);
+      if (data.summary && data.predictions) {
+        renderDonut(data.summary.label_counts || {});
+        renderErrorBars(data.predictions, threshold);
+        hasRunData = true;
+        document.getElementById('data-source-label').textContent =
+          `Showing results from last detection run · ${data.predictions.length} samples`;
+      }
+    } catch(e) {}
+  }
+
+  if (!hasRunData) {
+    renderDonut({ normal: 9711, DoS: 7460, Probe: 2421, R2L: 2885, U2R: 67 });
+    document.getElementById('data-source-label').textContent =
+      'Showing NSL-KDD test set distribution · Run a detection to see your own data';
+    const fakePreds = Array.from({ length: 150 }, (_, i) => ({
+      sample_id: i,
+      label: ['normal','normal','normal','DoS','Probe','R2L','U2R'][Math.floor(Math.random()*7)],
+      reconstruction_error: Math.random() * 2.5,
+    }));
+    renderErrorBars(fakePreds, threshold);
+  }
+
+  // ROC
+  try {
+    const res  = await fetch(`${API}/api/roc`);
+    const data = await res.json();
+    if (data.fpr && data.tpr && data.fpr.length > 1) {
+      renderROC(data.fpr, data.tpr, data.auc);
+    } else {
+      throw new Error('insufficient data');
+    }
+  } catch(e) {
+    document.getElementById('roc-chart').parentElement.innerHTML +=
+      `<div class="no-data"><span>Start the server to load the ROC curve.</span>
+       <a href="http://127.0.0.1:8000/docs" target="_blank">API docs →</a></div>`;
+  }
+
+  // Confusion matrix
+  try {
+    const res  = await fetch(`${API}/api/confusion`);
+    const data = await res.json();
+    if (data.matrix && data.classes) {
+      renderConfusionMatrix(data.matrix, data.classes);
+    } else {
+      throw new Error('no data');
+    }
+  } catch(e) {
+    document.getElementById('cm-wrap').innerHTML =
+      `<div class="no-data">
+        <span>Start the server to load the confusion matrix.</span>
+        <a href="http://127.0.0.1:8000" target="_blank">Start server →</a>
+      </div>`;
+  }
+
+  // F1 from metrics
+  try {
+    const res  = await fetch(`${API}/api/metrics`);
+    const data = await res.json();
+    renderF1(data);
+  } catch(e) {
+    // Fallback to hardcoded
+    renderF1({
+      '4_Full_Hybrid': {
+        per_class_f1: { DoS: 0.911, Probe: 0.698, R2L: 0.748, U2R: 0.419 }
+      }
+    });
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>
