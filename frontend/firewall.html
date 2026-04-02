@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HybridIDS — Firewall</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0f1e; --panel: #0d1424; --border: #1e2d45; --border2: #2d3f5a;
+      --cyan: #06b6d4; --green: #10b981; --purple: #8b5cf6;
+      --yellow: #f59e0b; --red: #ef4444; --orange: #f97316;
+      --text: #e2e8f0; --muted: #64748b; --radius: 8px; --radius-lg: 12px;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Navbar */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: 60px; background: rgba(10,15,30,0.88);
+      backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+    }
+    .navbar .container { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .nav-logo { display: flex; align-items: center; gap: 8px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; }
+    .nav-logo .dot { width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 8px var(--cyan); }
+    .nav-links { display: flex; list-style: none; gap: 2rem; }
+    .nav-links a { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; transition: color 0.2s; }
+    .nav-links a:hover, .nav-links a.active { color: var(--cyan); }
+
+    /* Page */
+    .page { padding: 90px 0 4rem; }
+    .page-header { margin-bottom: 2.5rem; }
+    .section-tag { display: inline-block; font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--red); margin-bottom: 0.5rem; }
+    .page-title { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .page-sub { color: var(--muted); font-size: 0.8rem; }
+
+    /* Grid */
+    .fw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .fw-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+
+    /* Card */
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.5rem;
+    }
+    .card-title {
+      font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .card-title .dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* Form elements */
+    label { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border2);
+      border-radius: var(--radius); color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem; padding: 0.55rem 0.75rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--cyan); }
+    .form-row { margin-bottom: 0.9rem; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0.55rem 1.2rem; border-radius: var(--radius);
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+      font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; width: 100%;
+      justify-content: center; margin-top: 0.4rem;
+    }
+    .btn-red    { background: var(--red);    color: #fff; }
+    .btn-red:hover    { background: #f87171; box-shadow: 0 0 16px rgba(239,68,68,0.4); }
+    .btn-green  { background: var(--green);  color: #000; }
+    .btn-green:hover  { background: #34d399; box-shadow: 0 0 16px rgba(16,185,129,0.4); }
+    .btn-cyan   { background: var(--cyan);   color: #000; }
+    .btn-cyan:hover   { background: #22d3ee; box-shadow: 0 0 16px rgba(6,182,212,0.4); }
+    .btn-yellow { background: var(--yellow); color: #000; }
+    .btn-yellow:hover { background: #fbbf24; box-shadow: 0 0 16px rgba(245,158,11,0.4); }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-purple:hover { background: #a78bfa; box-shadow: 0 0 16px rgba(139,92,246,0.4); }
+    .btn-outline { background: transparent; border: 1px solid var(--border2); color: var(--text); }
+    .btn-outline:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0.2rem 0.7rem; border-radius: 100px; font-size: 0.68rem;
+      font-weight: 600; margin-top: 0.75rem;
+    }
+    .badge-ok      { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-error   { background: rgba(239,68,68,0.15);  color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
+    .badge-info    { background: rgba(6,182,212,0.12);  color: var(--cyan);  border: 1px solid rgba(6,182,212,0.3); }
+    .badge-hidden  { display: none; }
+
+    /* Knock sequence display */
+    .knock-seq {
+      display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .knock-node {
+      padding: 0.3rem 0.75rem; border-radius: var(--radius);
+      font-size: 0.72rem; font-weight: 600;
+      background: var(--bg); border: 1px solid var(--border2); color: var(--muted);
+      transition: all 0.3s;
+    }
+    .knock-node.active { border-color: var(--cyan); color: var(--cyan); background: rgba(6,182,212,0.1); }
+    .knock-node.done   { border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.1); }
+    .knock-arrow { color: var(--border2); display: flex; align-items: center; font-size: 0.9rem; }
+
+    /* Log terminal */
+    .log-terminal {
+      background: #050a12; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem;
+      height: 260px; overflow-y: auto; font-size: 0.72rem; line-height: 1.7;
+    }
+    .log-line { color: #64748b; }
+    .log-line.attack { color: var(--red); }
+    .log-line.block  { color: var(--yellow); }
+    .log-line.open   { color: var(--green); }
+    .log-line.knock  { color: var(--purple); }
+
+    /* Auto-respond table */
+    .respond-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 1rem; }
+    .respond-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); }
+    .respond-table td { padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(30,45,69,0.5); }
+    .respond-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .tag {
+      display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px;
+      font-size: 0.65rem; font-weight: 600;
+    }
+    .tag-red    { background: rgba(239,68,68,0.15);  color: var(--red);    }
+    .tag-yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .tag-purple { background: rgba(139,92,246,0.15); color: var(--purple); }
+    .tag-cyan   { background: rgba(6,182,212,0.12);  color: var(--cyan);   }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="container">
+    <a href="/index.html" class="nav-logo"><span class="dot"></span>HybridIDS</a>
+    <ul class="nav-links">
+      <li><a href="/index.html">Home</a></li>
+      <li><a href="/dashboard.html">Detect</a></li>
+      <li><a href="/visualizations.html">Visualize</a></li>
+      <li><a href="/comparison.html">Compare</a></li>
+      <li><a href="/explainability.html">Explain</a></li>
+      <li><a href="/firewall.html" class="active">Firewall</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container">
+
+    <div class="page-header">
+      <span class="section-tag">🔥 Active Defense</span>
+      <h1 class="page-title">Firewall & Response System</h1>
+      <p class="page-sub">Block IPs, manage ports, and trigger automated responses based on detected attack types.</p>
+    </div>
+
+    <!-- Row 1: Block IP + Auto Respond -->
+    <div class="fw-grid">
+
+      <!-- Block IP -->
+      <div class="card">
+        <div class="card-title">
+          <span class="dot" style="background:var(--red)"></span>
+          Block / Unblock IP
+        </div>
+        <div class="form-row">
+          <label>IP Address</label>
+          <input type="text" id="block-ip-input" placeholder="e.g. 192.168.1.105"/>
+        </div>
+        <button class="btn btn-red" onclick="blockIP()">🚫 Block IP</button>
+        <button class="btn btn-outline" style="margin-top:0.5rem" onclick="unblockIP()">✓ Unblock IP</button>
+        <div id="block-ip-status" class="status-badge badge-hidden"></div>
+      </div>
+
+      <!-- Auto Respond -->
+      <div class="card">
+        <div class="card-title">
+          <span class="dot" style="background:var(--orange)"></span>
+          Automated Response
+        </div>
+        <div class="form-row">
+          <label>Source IP</label>
+          <input type="text" id="respond-ip" placeholder="e.g. 10.0.0.44"/>
+        </div>
+        <div class="form-row">
+          <label>Attack Type</label>
+          <select id="respond-type">
+            <option value="DoS">DoS — Block IP</option>
+            <option value="Probe">Probe — Block port 80</option>
+            <option value="R2L">R2L — Block IP</option>
+            <option value="U2R">U2R — Block IP + Block port 22</option>
+          </select>
+        </div>
+        <button class="btn btn-red" onclick="autoRespond()">⚡ Execute Response</button>
+        <div id="respond-status" class="status-badge badge-hidden"></div>
+      </div>
+
+    </div>
+
+    <!-- Row 2: Block Port + Port Knocking -->
+    <div class="fw-grid">
+
+      <!-- Port control -->
+      <div class="card">
+        <div class="card-title">
+          <span class="dot" style="background:var(--yellow)"></span>
+          Port Control
+        </div>
+        <div class="form-row">
+          <label>Port Number</label>
+          <input type="number" id="port-input" placeholder="e.g. 80" min="1" max="65535"/>
+        </div>
+        <button class="btn btn-yellow" onclick="blockPort()">🔒 Block Port</button>
+        <button class="btn btn-green" style="margin-top:0.5rem" onclick="openPort()">🔓 Open Port</button>
+        <div id="port-status" class="status-badge badge-hidden"></div>
+      </div>
+
+      <!-- Port Knocking -->
+      <div class="card">
+        <div class="card-title">
+          <span class="dot" style="background:var(--purple)"></span>
+          Port Knocking — SSH Access
+        </div>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.9rem">
+          Knock the correct sequence to unlock port 22 (SSH). Sequence resets on wrong knock.
+        </p>
+        <div class="knock-seq">
+          <div class="knock-node" id="k0">5000</div>
+          <div class="knock-arrow">→</div>
+          <div class="knock-node" id="k1">6000</div>
+          <div class="knock-arrow">→</div>
+          <div class="knock-node" id="k2">7000</div>
+        </div>
+        <div class="form-row">
+          <label>Send knock on port</label>
+          <input type="number" id="knock-input" placeholder="5000, 6000 or 7000"/>
+        </div>
+        <button class="btn btn-purple" onclick="sendKnock()">🔔 Send Knock</button>
+        <div id="knock-status" class="status-badge badge-hidden"></div>
+      </div>
+
+    </div>
+
+    <!-- Row 3: Response reference table + Logs -->
+    <div class="fw-grid">
+
+      <!-- Reference table -->
+      <div class="card">
+        <div class="card-title">
+          <span class="dot" style="background:var(--cyan)"></span>
+          Response Rules Reference
+        </div>
+        <table class="respond-table">
+          <thead>
+            <tr>
+              <th>Attack</th>
+              <th>Action</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-red">DoS</span></td>
+              <td>Block IP</td>
+              <td>Source address</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-yellow">Probe</span></td>
+              <td>Block Port 80</td>
+              <td>HTTP inbound</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-purple">R2L</span></td>
+              <td>Block IP</td>
+              <td>Source address</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-cyan">U2R</span></td>
+              <td>Block IP + Port 22</td>
+              <td>Source + SSH</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.7rem;color:var(--muted)">
+          All actions run via <code style="color:var(--cyan)">iptables -I INPUT</code> on the server.
+          Requires root/sudo privileges.
+        </p>
+      </div>
+
+      <!-- Live logs -->
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between">
+          <span style="display:flex;align-items:center;gap:0.5rem">
+            <span class="dot" style="background:var(--green)"></span>
+            Live Action Log
+          </span>
+          <button class="btn btn-outline" style="width:auto;padding:0.3rem 0.8rem;font-size:0.7rem" onclick="loadLogs()">↻ Refresh</button>
+        </div>
+        <div class="log-terminal" id="log-terminal">
+          <div class="log-line" style="color:var(--muted)">Loading logs...</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = '';  // same origin
+
+// ── helpers ─────────────────────────────────────────────────────
+function showStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  el.className = `status-badge badge-${type}`;
+  el.textContent = msg;
+  setTimeout(() => el.className = 'status-badge badge-hidden', 4000);
+}
+
+async function post(endpoint, body) {
+  const r = await fetch(API + endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// ── Block / Unblock IP ───────────────────────────────────────────
+async function blockIP() {
+  const ip = document.getElementById('block-ip-input').value.trim();
+  if (!ip) return showStatus('block-ip-status', 'Enter an IP address', 'error');
+  const d = await post('/api/firewall/block-ip', { ip });
+  showStatus('block-ip-status', d.message || 'Blocked', 'ok');
+  loadLogs();
+}
+
+async function unblockIP() {
+  const ip = document.getElementById('block-ip-input').value.trim();
+  if (!ip) return showStatus('block-ip-status', 'Enter an IP address', 'error');
+  const d = await post('/api/firewall/unblock-ip', { ip });
+  showStatus('block-ip-status', d.message || 'Unblocked', 'ok');
+  loadLogs();
+}
+
+// ── Auto Respond ─────────────────────────────────────────────────
+async function autoRespond() {
+  const ip   = document.getElementById('respond-ip').value.trim();
+  const type = document.getElementById('respond-type').value;
+  if (!ip) return showStatus('respond-status', 'Enter source IP', 'error');
+  const d = await post('/api/firewall/respond', { ip, attack_type: type });
+  showStatus('respond-status', d.action || 'Done', 'ok');
+  loadLogs();
+}
+
+// ── Port control ─────────────────────────────────────────────────
+async function blockPort() {
+  const port = parseInt(document.getElementById('port-input').value);
+  if (!port) return showStatus('port-status', 'Enter a port number', 'error');
+  const d = await post('/api/firewall/block-port', { port });
+  showStatus('port-status', d.message || 'Blocked', 'ok');
+  loadLogs();
+}
+
+async function openPort() {
+  const port = parseInt(document.getElementById('port-input').value);
+  if (!port) return showStatus('port-status', 'Enter a port number', 'error');
+  const d = await post('/api/firewall/open-port', { port });
+  showStatus('port-status', d.message || 'Opened', 'ok');
+  loadLogs();
+}
+
+// ── Port knocking ─────────────────────────────────────────────────
+let knockStep = 0;
+const SEQUENCE = [5000, 6000, 7000];
+
+async function sendKnock() {
+  const port = parseInt(document.getElementById('knock-input').value);
+  if (!port) return showStatus('knock-status', 'Enter a port', 'error');
+
+  const d = await post('/api/firewall/knock', { port });
+
+  if (d.sequence_complete) {
+    // All done
+    document.querySelectorAll('.knock-node').forEach(n => n.className = 'knock-node done');
+    showStatus('knock-status', '✓ SSH unlocked — port 22 opened', 'ok');
+    knockStep = 0;
+    setTimeout(resetKnockUI, 3000);
+  } else {
+    // Check if correct next knock
+    if (port === SEQUENCE[knockStep]) {
+      document.getElementById('k' + knockStep).className = 'knock-node active';
+      knockStep++;
+      showStatus('knock-status', `Knock ${knockStep}/${SEQUENCE.length} accepted`, 'info');
+    } else {
+      resetKnockUI();
+      showStatus('knock-status', 'Wrong sequence — reset', 'error');
+    }
+  }
+  loadLogs();
+}
+
+function resetKnockUI() {
+  knockStep = 0;
+  document.querySelectorAll('.knock-node').forEach(n => n.className = 'knock-node');
+}
+
+// ── Logs ──────────────────────────────────────────────────────────
+async function loadLogs() {
+  try {
+    const d = await fetch(API + '/api/firewall/logs?n=60').then(r => r.json());
+    const terminal = document.getElementById('log-terminal');
+    if (!d.logs || d.logs.length === 0) {
+      terminal.innerHTML = '<div class="log-line" style="color:var(--muted)">No logs yet.</div>';
+      return;
+    }
+    terminal.innerHTML = d.logs.map(line => {
+      let cls = 'log-line';
+      if (line.includes('->') && (line.includes('DOS') || line.includes('U2R') || line.includes('R2L') || line.includes('PROBE'))) cls += ' attack';
+      else if (line.includes('BLOCKED')) cls += ' block';
+      else if (line.includes('OPENED') || line.includes('UNBLOCKED')) cls += ' open';
+      else if (line.includes('knock') || line.includes('Knock') || line.includes('SSH')) cls += ' knock';
+      return `<div class="${cls}">${line}</div>`;
+    }).join('');
+    terminal.scrollTop = terminal.scrollHeight;
+  } catch(e) {
+    document.getElementById('log-terminal').innerHTML = '<div class="log-line" style="color:var(--red)">Could not reach API.</div>';
+  }
+}
+
+// Load logs on page open and auto-refresh every 10s
+loadLogs();
+setInterval(loadLogs, 10000);
+</script>
+</body>
+</html>

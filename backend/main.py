@@ -36,6 +36,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from sklearn.metrics import roc_curve, auc, confusion_matrix
+from backend.firewall import respond, block_ip, block_port, open_port, get_logs, check_knock
 
 # ─────────────────────────────────────────────
 # PATHS
@@ -113,6 +114,20 @@ async def load_models():
     Models.threshold   = thresh["threshold"]
     Models.threshold_data = thresh
     print(f"  ✓ Models loaded. Threshold = {Models.threshold:.6f}")
+
+
+class RespondRequest(BaseModel):
+    attack_type: str   # "DoS", "Probe", "R2L", "U2R"
+    ip: str            # source IP to act on
+ 
+class BlockIPRequest(BaseModel):
+    ip: str
+ 
+class BlockPortRequest(BaseModel):
+    port: int
+ 
+class KnockRequest(BaseModel):
+    port: int
 
 
 # ─────────────────────────────────────────────
@@ -479,6 +494,46 @@ def get_sample_csv():
     except Exception as e:
         raise HTTPException(500, str(e))
 
+
+@app.post("/api/firewall/respond")
+def firewall_respond(req: RespondRequest):
+    """Automated response based on attack type."""
+    respond(req.attack_type, req.ip)
+    return {"status": "ok", "action": f"Responded to {req.attack_type} from {req.ip}"}
+ 
+ 
+@app.post("/api/firewall/block-ip")
+def firewall_block_ip(req: BlockIPRequest):
+    """Manually block an IP address."""
+    block_ip(req.ip)
+    return {"status": "ok", "message": f"Blocked IP: {req.ip}"}
+ 
+ 
+@app.post("/api/firewall/block-port")
+def firewall_block_port(req: BlockPortRequest):
+    """Block a port."""
+    block_port(req.port)
+    return {"status": "ok", "message": f"Blocked port: {req.port}"}
+ 
+ 
+@app.post("/api/firewall/open-port")
+def firewall_open_port(req: BlockPortRequest):
+    """Open (unblock) a port."""
+    open_port(req.port)
+    return {"status": "ok", "message": f"Opened port: {req.port}"}
+
+
+@app.post("/api/firewall/knock")
+def firewall_knock(req: KnockRequest):
+    """Register a port knock."""
+    success = check_knock(req.port)
+    return {"status": "ok", "sequence_complete": success}
+ 
+ 
+@app.get("/api/firewall/logs")
+def firewall_logs(n: int = 50):
+    """Return last n firewall log lines."""
+    return {"logs": get_logs(n)}
 
 # ─────────────────────────────────────────────
 # FRONTEND ROUTES  (serve HTML pages)
