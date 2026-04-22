@@ -1,17 +1,7 @@
 a. create a venv
 
-b. install requirements 
+b. pip install -r requirements
 
-c. backend - run the following one by one
+c. run main.py   (uvicorn backend.main:app --reload --port 8000)
 
-1. preprocess.py
-2. vae.py
-3. threshold.py
-4. classifier.py
-5. pipleline.py
-6. explainability.py
-7. evalute.py
-
-d. run main.py   (uvicorn backend.main:app --reload --port 8000)
-
-e. open - http://127.0.0.1:8000/index.html
+d. open - http://127.0.0.1:8000/index.html

@@ -1,0 +1,6 @@
+[2026-04-22 10:17:28] [knock] Valid knock: 5000 (1/3)
+[2026-04-22 10:17:39] [knock] Valid knock: 6000 (2/3)
+[2026-04-22 10:17:46] [knock] Valid knock: 7000 (3/3)
+[2026-04-22 10:17:46] [system] OPENED PORT 22: iptables -D INPUT -p tcp --dport 22 -j DROP
+[2026-04-22 10:17:46] [knock] Full sequence matched — SSH port 22 opened
+[2026-04-22 10:17:53] [system] BLOCKED PORT 22 via iptables: iptables -I INPUT -p tcp --dport 22 -j DROP

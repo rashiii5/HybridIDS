@@ -237,16 +237,9 @@
         <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.9rem">
           Knock the correct sequence to unlock port 22 (SSH). Sequence resets on wrong knock.
         </p>
-        <div class="knock-seq">
-          <div class="knock-node" id="k0">5000</div>
-          <div class="knock-arrow">→</div>
-          <div class="knock-node" id="k1">6000</div>
-          <div class="knock-arrow">→</div>
-          <div class="knock-node" id="k2">7000</div>
-        </div>
         <div class="form-row">
           <label>Send knock on port</label>
-          <input type="number" id="knock-input" placeholder="5000, 6000 or 7000"/>
+          <input type="number" id="knock-input" placeholder="Type your sequence"/>
         </div>
         <button class="btn btn-purple" onclick="sendKnock()">🔔 Send Knock</button>
         <div id="knock-status" class="status-badge badge-hidden"></div>
